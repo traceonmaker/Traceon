@@ -261,7 +261,7 @@ async function fetchData() {
     const r = await fetch(PROXY_URL, { cache:'no-store' });
     if (!r.ok) throw new Error('HTTP '+r.status);
     const json = await r.json();
-    allData = parseNotion(json.results || []);
+    const parsed = parseNotion(json.results || []); const paidIds = allData.filter(c => c.statut === 'Payé').map(c => c.id); allData = parsed.map(c => paidIds.includes(c.id) ? {...c, statut:'Payé'} : c);
     setStatus('live');
   } catch(e) {
     if (allData.length === 0) {

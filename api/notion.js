@@ -36,13 +36,13 @@ export default async function handler(req, res) {
           properties: {
             'Nom client': { title: [{ text: { content: body.client || '' } }] },
             'téléphone': { phone_number: body.telephone || '' },
-            'type de chantier': { select: { name: body.typeChantier || 'Autre' } },
+            'type de chantier ': { select: { name: body.typeChantier || 'Autre' } },
             'adresse': { rich_text: [{ text: { content: body.adresse || '' } }] },
             'description': { rich_text: [{ text: { content: body.description || '' } }] },
             'date': body.date ? { date: { start: body.date } } : undefined,
             'heure': { rich_text: [{ text: { content: body.heure || '' } }] },
             'Prix': { number: body.prixEstime || 0 },
-            'Statut': { select: { name: 'Planifié' } }
+            'Statut': { status: { name: 'Planifié' } }
           }
         })
       });

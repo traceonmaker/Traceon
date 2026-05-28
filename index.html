@@ -430,7 +430,7 @@ async function markPaid(id) {
       await fetch(PROXY_URL, {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ pageId: id })
+        body: JSON.stringify({ pageId: String(id) })
       });
     }
   } catch(e) {}

@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         page_size: 100,
-        sorts: [{ property: 'Date chantier', direction: 'ascending' }]
+        sorts: [{ property: 'date', direction: 'ascending' }]
       })
     });
     const data = await r.json();

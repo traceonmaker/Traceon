@@ -42,7 +42,7 @@ export default async function handler(req, res) {
             'date': body.date ? { date: { start: body.date } } : undefined,
             'heure': { rich_text: [{ text: { content: body.heure || '' } }] },
             'Prix': { number: body.prixEstime || 0 },
-            'Statut': { select: { name: 'Planifié' } }
+            'Statut': { status: { name: 'Planifié' } }
           }
         })
       });
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       const r = await fetch(`https://api.notion.com/v1/pages/${body.pageId}`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${TOKEN}`, 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ properties: { 'Statut': { select: { name: 'Payé' } } } })
+        body: JSON.stringify({ properties: { 'Statut': { status: { name: 'Payé' } } } })
       });
       return res.status(200).json(await r.json());
     }

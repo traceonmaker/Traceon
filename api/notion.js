@@ -8,10 +8,9 @@ export default async function handler(req, res) {
   const TOKEN = process.env.NOTION_TOKEN;
 
   if (!DB_ID || !TOKEN) {
-    return res.status(500).json({ error: 'Variables NOTION_TOKEN et NOTION_DB_ID manquantes dans Vercel' });
+    return res.status(500).json({ error: 'Variables manquantes' });
   }
 
-  // GET — lire tous les chantiers
   if (req.method === 'GET') {
     const r = await fetch(`https://api.notion.com/v1/databases/${DB_ID}/query`, {
       method: 'POST',
@@ -20,34 +19,44 @@ export default async function handler(req, res) {
         'Notion-Version': '2022-06-28',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        page_size: 100,
-        sorts: [{ property: 'date', direction: 'ascending' }]
-      })
+      body: JSON.stringify({ page_size: 100, sorts: [{ property: 'date', direction: 'ascending' }] })
     });
-    const data = await r.json();
-    return res.status(200).json(data);
+    return res.status(200).json(await r.json());
   }
 
-  // POST — marquer comme PAYÉ
   if (req.method === 'POST') {
-    const { pageId } = req.body;
-    if (!pageId) return res.status(400).json({ error: 'pageId manquant' });
-    const r = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${TOKEN}`,
-        'Notion-Version': '2022-06-28',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        properties: {
-          Statut: { select: { name: 'Payé' } }
-        }
-      })
-    });
-    const data = await r.json();
-    return res.status(200).json(data);
+    const body = req.body;
+
+    if (body.newChantier) {
+      const r = await fetch(`https://api.notion.com/v1/pages`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${TOKEN}`, 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          parent: { database_id: DB_ID },
+          properties: {
+            'Nom client': { title: [{ text: { content: body.client || '' } }] },
+            'téléphone': { phone_number: body.telephone || '' },
+            'type de chantier': { select: { name: body.typeChantier || 'Autre' } },
+            'adresse': { rich_text: [{ text: { content: body.adresse || '' } }] },
+            'description': { rich_text: [{ text: { content: body.description || '' } }] },
+            'date': body.date ? { date: { start: body.date } } : undefined,
+            'heure': { rich_text: [{ text: { content: body.heure || '' } }] },
+            'Prix': { number: body.prixEstime || 0 },
+            'Statut': { select: { name: 'Planifié' } }
+          }
+        })
+      });
+      return res.status(200).json(await r.json());
+    }
+
+    if (body.pageId) {
+      const r = await fetch(`https://api.notion.com/v1/pages/${body.pageId}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${TOKEN}`, 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ properties: { 'Statut': { select: { name: 'Payé' } } } })
+      });
+      return res.status(200).json(await r.json());
+    }
   }
 
   return res.status(405).json({ error: 'Méthode non autorisée' });

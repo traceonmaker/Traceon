@@ -220,7 +220,7 @@
 
 <script>
 // ⬇️ CHANGE CETTE LIGNE AVEC TON URL VERCEL
-const PROXY_URL = 'https://TON-PROJET.vercel.app/api/notion';
+const PROXY_URL = 'https://traceon-eosin.vercel.app/api/notion';
 
 // -------- DATA --------
 let allData = [];
@@ -426,7 +426,7 @@ async function markPaid(id) {
 
   // API call (silent)
   try {
-    if (!PROXY_URL.includes('TON-PROJET')) {
+    if (!PROXY_URL.includes('traceon-eosin')) {
       await fetch(PROXY_URL, {
         method:'POST',
         headers:{'Content-Type':'application/json'},

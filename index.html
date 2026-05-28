@@ -310,7 +310,7 @@ function getDate(prop) { return prop?.date?.start||''; }
 
 // -------- RENDER --------
 function render() {
-  const planifies = allData.filter(c => c.statut !== 'Payé' && c.statut !== 'PAYE' && c.statut !== 'ANNULE');
+  const planifies = allData.filter(c => c.statut !== 'Payé' && c.statut !== 'PAYE' && c.statut !== 'ANNULE' && c.statut !== 'à confirmer');
   const payes = allData.filter(c => c.statut === 'Payé' || c.statut === 'PAYE');
 
   potentiel = planifies.reduce((s,c)=>s+c.prix,0);

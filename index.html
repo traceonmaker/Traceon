@@ -228,6 +228,7 @@ let potentiel = 0;
 let encaisse = 0;
 let deferredPrompt = null;
 let refreshTimer = null;
+const localPaidIds = new Set(JSON.parse(localStorage.getItem('paidIds')||'[]'));
 
 // -------- DEMO DATA --------
 const DEMO = [
@@ -261,7 +262,7 @@ async function fetchData() {
     const r = await fetch(PROXY_URL, { cache:'no-store' });
     if (!r.ok) throw new Error('HTTP '+r.status);
     const json = await r.json();
-    const parsed = parseNotion(json.results || []); const paidIds = allData.filter(c => c.statut === 'Payé').map(c => c.id); allData = parsed.map(c => paidIds.includes(c.id) ? {...c, statut:'Payé'} : c);
+    allData = parseNotion(json.results || []).map(c => localPaidIds.has(c.id) ? {...c, statut:'Payé'} : c);
     setStatus('live');
   } catch(e) {
     if (allData.length === 0) {
@@ -281,7 +282,7 @@ function parseNotion(results) {
       id: p.id,
       client: getText(props['Nom client'] || props['Client'] || props['Nom']),
       prix: getNumber(props['Prix'] || props['Montant'] || props['Budget']),
-      service: getSelect(props['type de chantier '] || props['Service'] || props['Type']),
+      service: getSelect(props['type de chantier'] || props['Service'] || props['Type']),
       heure: getText(props['Heure'] || props['Horaire']),
       adresse: getText(props['Adresse'] || props['Lieu']),
       tel: getPhone(props['téléphone'] || props['Téléphone'] || props['Tel']),
@@ -413,6 +414,8 @@ async function markPaid(id) {
   if (item) {
     const oldPrix = item.prix;
     item.statut = 'Payé';
+      localPaidIds.add(id);
+      localStorage.setItem('paidIds', JSON.stringify([...localPaidIds]));
     potentiel -= oldPrix;
     encaisse += oldPrix;
     animateValue('statPotentiel', potentiel, true);
@@ -426,11 +429,11 @@ async function markPaid(id) {
 
   // API call (silent)
   try {
-    if (!PROXY_URL.includes('traceon-eosin')) {
+    if (!PROXY_URL.includes('TON-PROJET')) {
       await fetch(PROXY_URL, {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ pageId: String(id) })
+        body: JSON.stringify({ pageId: id })
       });
     }
   } catch(e) {}

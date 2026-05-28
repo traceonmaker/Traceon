@@ -281,7 +281,7 @@ function parseNotion(results) {
       id: p.id,
       client: getText(props['Nom client'] || props['Client'] || props['Nom']),
       prix: getNumber(props['Prix'] || props['Montant'] || props['Budget']),
-      service: getSelect(props['type de chantier'] || props['Service'] || props['Type']),
+      service: getSelect(props['type de chantier '] || props['Service'] || props['Type']),
       heure: getText(props['Heure'] || props['Horaire']),
       adresse: getText(props['Adresse'] || props['Lieu']),
       tel: getPhone(props['téléphone'] || props['Téléphone'] || props['Tel']),

@@ -42,7 +42,7 @@ export default async function handler(req, res) {
             'date': body.date ? { date: { start: body.date } } : undefined,
             'heure': { rich_text: [{ text: { content: body.heure || '' } }] },
             'Prix': { number: body.prixEstime || 0 },
-            'Statut': { status: { name: 'Planifié' } }
+            'Statut': { select: { name: 'Planifié' } }
           }
         })
       });

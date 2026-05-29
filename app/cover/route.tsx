@@ -27,7 +27,7 @@ export async function GET() {
           display: 'flex', fontSize: 21, fontWeight: 600, letterSpacing: 5,
           marginTop: 14, opacity: 0.85,
         }}>
-          SOLUTIONS DIGITALES
+          SITES WEB &amp; APPLICATIONS
         </div>
       </div>
     ),

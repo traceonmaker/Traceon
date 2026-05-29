@@ -30,12 +30,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 
     if (demande) {
       const entreprise = demande.artisans?.nom_entreprise || demande.artisans?.nom
-      await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/sms`, {
+      const base = process.env.NEXT_PUBLIC_APP_URL
+      await fetch(`${base}/api/sms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: demande.client_telephone,
-          message: `Intervention confirmee ! ${entreprise} interviendra le ${creneau.date} a ${creneau.heure_debut}. A bientot !`
+          message: `Intervention confirmee ! ${entreprise} interviendra le ${creneau.date} a ${creneau.heure_debut}. Votre devis : ${base}/api/devis/${token}`
         })
       }).catch(() => {})
     }

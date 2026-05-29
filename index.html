@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="TraceOn">
+<link rel="manifest" href="manifest.json">
+<title>TraceOn — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f5f0;
+    --surface: #ffffff;
+    --border: #e8e8e3;
+    --text: #0a0a0a;
+    --text-soft: #888880;
+    --blue: #1a6bff;
+    --green: #00b86b;
+    --green-light: #e6f9f1;
+    --amber: #f59e0b;
+    --amber-light: #fef3cd;
+    --red: #ef4444;
+    --radius: 16px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; background:var(--bg); font-family:'DM Sans',sans-serif; color:var(--text); overflow:hidden; }
+
+  /* LAYOUT */
+  #app { display:flex; flex-direction:column; height:100vh; height:100dvh; }
+  #header { padding:16px 20px 12px; background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0; }
+  #content { flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; padding:16px 16px 24px; }
+  #nav { display:flex; background:var(--surface); border-top:1px solid var(--border); flex-shrink:0; padding-bottom:env(safe-area-inset-bottom); }
+
+  /* HEADER */
+  .header-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:2px; }
+  .logo { font-size:20px; font-weight:700; letter-spacing:-0.5px; }
+  .logo span { color:var(--blue); }
+  .status-badge { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-soft); font-weight:500; }
+  .status-dot { width:7px; height:7px; border-radius:50%; background:#ccc; transition:background 0.3s; }
+  .status-dot.live { background:var(--green); box-shadow:0 0 6px var(--green); animation:pulse 2s infinite; }
+  .status-dot.loading { background:var(--amber); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .slogan { font-size:11px; color:var(--text-soft); letter-spacing:0.5px; margin-bottom:1px; }
+  .date-line { font-size:12px; color:var(--text-soft); font-weight:500; }
+
+  /* STATS */
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
+  .stat-card { background:var(--surface); border-radius:var(--radius); padding:14px 16px; box-shadow:var(--shadow); }
+  .stat-label { font-size:10px; font-weight:700; letter-spacing:1px; color:var(--text-soft); text-transform:uppercase; margin-bottom:6px; }
+  .stat-value { font-family:'DM Mono',monospace; font-size:26px; font-weight:500; line-height:1; }
+  .stat-value.green { color:var(--green); }
+  .stat-value.blue { color:var(--blue); }
+
+  /* DATE GROUP */
+  .date-group { margin-bottom:20px; }
+  .date-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .date-label { font-size:12px; font-weight:700; letter-spacing:0.5px; color:var(--text-soft); text-transform:uppercase; }
+  .today-pill { background:var(--green); color:#fff; font-size:10px; font-weight:700; letter-spacing:0.8px; padding:3px 8px; border-radius:20px; text-transform:uppercase; }
+
+  /* CARDS */
+  .card { background:var(--surface); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow); margin-bottom:10px; transition:opacity 0.3s, transform 0.3s, max-height 0.4s; overflow:hidden; }
+  .card.paying { opacity:0.6; pointer-events:none; }
+  .card.paid-anim { opacity:0; transform:scale(0.96); max-height:0; padding:0; margin:0; }
+  .card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+  .client-name { font-size:16px; font-weight:700; }
+  .price { font-size:17px; font-weight:700; color:var(--green); font-family:'DM Mono',monospace; }
+  .service-badge { display:inline-flex; align-items:center; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; margin-bottom:8px; }
+  .badge-plomberie { background:#dbeafe; color:#1d4ed8; }
+  .badge-electricite { background:var(--amber-light); color:#b45309; }
+  .badge-climatisation { background:#dcfce7; color:#166534; }
+  .badge-autre { background:#f3f4f6; color:#374151; }
+  .card-meta { font-size:12px; color:var(--text-soft); margin-bottom:12px; font-weight:500; }
+  .card-actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .btn { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 6px; border-radius:12px; border:1px solid var(--border); background:var(--bg); font-size:11px; font-weight:600; color:var(--text-soft); cursor:pointer; transition:all 0.15s; text-decoration:none; -webkit-tap-highlight-color:transparent; }
+  .btn:active { transform:scale(0.95); }
+  .btn svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .btn-validate { color:var(--green); border-color:#b6f0d8; background:var(--green-light); }
+  .btn-validate.done { background:var(--green); color:#fff; border-color:var(--green); }
+
+  /* HISTORIQUE */
+  .histo-header { background:var(--surface); border-radius:var(--radius); padding:14px 16px; box-shadow:var(--shadow); margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; }
+  .histo-total-label { font-size:11px; font-weight:700; letter-spacing:1px; color:var(--text-soft); text-transform:uppercase; }
+  .histo-total-value { font-family:'DM Mono',monospace; font-size:22px; color:var(--green); font-weight:500; }
+  .histo-card { background:var(--surface); border-radius:var(--radius); padding:14px 16px; box-shadow:var(--shadow); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
+  .histo-left { flex:1; }
+  .histo-name { font-size:15px; font-weight:600; margin-bottom:2px; }
+  .histo-meta { font-size:12px; color:var(--text-soft); }
+  .histo-price { font-family:'DM Mono',monospace; font-size:16px; color:var(--green); font-weight:500; }
+  .paid-badge { font-size:10px; font-weight:700; color:var(--green); background:var(--green-light); padding:3px 8px; border-radius:20px; margin-top:4px; display:inline-block; }
+
+  /* INFOS */
+  .info-card { background:var(--surface); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); margin-bottom:12px; }
+  .info-card h3 { font-size:15px; font-weight:700; margin-bottom:8px; }
+  .info-step { display:flex; gap:12px; align-items:flex-start; margin-bottom:12px; }
+  .step-num { width:26px; height:26px; border-radius:50%; background:var(--blue); color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .step-text { font-size:13px; line-height:1.5; color:var(--text-soft); }
+  .step-text strong { color:var(--text); }
+
+  /* NAV */
+  .nav-btn { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:10px 0; border:none; background:none; font-size:10px; font-weight:600; color:var(--text-soft); cursor:pointer; letter-spacing:0.3px; transition:color 0.2s; }
+  .nav-btn.active { color:var(--blue); }
+  .nav-btn svg { width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* EMPTY */
+  .empty { text-align:center; padding:48px 24px; color:var(--text-soft); }
+  .empty-emoji { font-size:36px; margin-bottom:12px; }
+  .empty-text { font-size:14px; font-weight:500; }
+
+  /* INSTALL BANNER */
+  #install-banner { display:none; position:fixed; bottom:80px; left:16px; right:16px; background:var(--blue); color:#fff; border-radius:var(--radius); padding:14px 16px; box-shadow:0 4px 24px rgba(26,107,255,0.4); z-index:100; flex-direction:row; justify-content:space-between; align-items:center; gap:12px; }
+  #install-banner.show { display:flex; }
+  .install-text { font-size:13px; font-weight:600; line-height:1.4; }
+  .install-btn { background:#fff; color:var(--blue); border:none; border-radius:10px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+
+  /* ANIMATIONS */
+  @keyframes slideUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .card, .stat-card, .histo-card { animation:slideUp 0.25s ease both; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div class="header-top">
+      <div class="logo">TRACE<span>ON</span></div>
+      <div class="status-badge">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Connexion...</span>
+      </div>
+    </div>
+    <div class="slogan">Planifié. Exécuté. Encaissé.</div>
+    <div class="date-line" id="dateLine"></div>
+  </div>
+
+  <div id="content">
+    <div id="view-chantiers" class="view">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Potentiel</div>
+          <div class="stat-value blue" id="statPotentiel">0 €</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Encaissé</div>
+          <div class="stat-value green" id="statEncaisse">0 €</div>
+        </div>
+      </div>
+      <div id="chantiersList"></div>
+    </div>
+
+    <div id="view-historique" class="view" style="display:none">
+      <div class="histo-header">
+        <div class="histo-total-label">Total encaissé</div>
+        <div class="histo-total-value" id="histoTotal">0 €</div>
+      </div>
+      <div id="histoList"></div>
+    </div>
+
+    <div id="view-infos" class="view" style="display:none">
+      <div class="info-card">
+        <h3>📱 Installer l'app sur iPhone</h3>
+        <div class="info-step">
+          <div class="step-num">1</div>
+          <div class="step-text">Ouvre ce lien dans <strong>Safari</strong> (pas Chrome)</div>
+        </div>
+        <div class="info-step">
+          <div class="step-num">2</div>
+          <div class="step-text">Appuie sur le bouton <strong>Partager</strong> (carré avec flèche) en bas de Safari</div>
+        </div>
+        <div class="info-step">
+          <div class="step-num">3</div>
+          <div class="step-text">Fais défiler et appuie sur <strong>"Sur l'écran d'accueil"</strong></div>
+        </div>
+        <div class="info-step">
+          <div class="step-num">4</div>
+          <div class="step-text">Appuie sur <strong>Ajouter</strong> en haut à droite. C'est fait ✅</div>
+        </div>
+      </div>
+      <div class="info-card">
+        <h3>📱 Installer l'app sur Android</h3>
+        <div class="info-step">
+          <div class="step-num">1</div>
+          <div class="step-text">Ouvre ce lien dans <strong>Chrome</strong></div>
+        </div>
+        <div class="info-step">
+          <div class="step-num">2</div>
+          <div class="step-text">Une bannière "Installer l'app" apparaît en bas — appuie dessus</div>
+        </div>
+        <div class="info-step">
+          <div class="step-num">3</div>
+          <div class="step-text">Ou : menu <strong>⋮</strong> → <strong>"Ajouter à l'écran d'accueil"</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav id="nav">
+    <button class="nav-btn active" id="btn-chantiers" onclick="switchView('chantiers')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Chantiers
+    </button>
+    <button class="nav-btn" id="btn-historique" onclick="switchView('historique')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+      Historique
+    </button>
+    <button class="nav-btn" id="btn-infos" onclick="switchView('infos')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Infos
+    </button>
+  </nav>
+</div>
+
+<div id="install-banner">
+  <div class="install-text">Installer TraceOn<br>sur ton écran d'accueil</div>
+  <button class="install-btn" id="installBtn">Installer</button>
+</div>
+
+<script>
+// ⬇️ CHANGE CETTE LIGNE AVEC TON URL VERCEL
+const PROXY_URL = 'https://traceon-eosin.vercel.app/api/notion';
+
+// -------- DATA --------
+let allData = [];
+let potentiel = 0;
+let encaisse = 0;
+let deferredPrompt = null;
+let refreshTimer = null;
+const localPaidIds = new Set(JSON.parse(localStorage.getItem('paidIds')||'[]'));
+
+// -------- DEMO DATA --------
+const DEMO = [
+  { id:'d1', client:'Martin Dupont', prix:650, service:'Plomberie', heure:'09h00', adresse:'12 rue de la Paix', tel:'0696000001', statut:'PLANIFIE', date: todayStr() },
+  { id:'d2', client:'Sophie Lemaire', prix:420, service:'Electricité', heure:'11h00', adresse:'5 av. Victor Hugo', tel:'0696000002', statut:'PLANIFIE', date: todayStr() },
+  { id:'d3', client:'Jean-Pierre Roux', prix:560, service:'Climatisation', heure:'14h30', adresse:'3 rue du Port', tel:'0696000003', statut:'PLANIFIE', date: todayStr() },
+  { id:'d4', client:'Marie Fontaine', prix:380, service:'Plomberie', heure:'10h00', adresse:'8 rue Schoelcher', tel:'0696000004', statut:'PLANIFIE', date: tomorrowStr() },
+  { id:'d5', client:'Paul Beaumont', prix:720, service:'Electricité', heure:'09h30', adresse:'15 bd de la Liberté', tel:'0696000005', statut:'PAYE', date: yesterdayStr() },
+];
+
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function tomorrowStr() { const d=new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; }
+function yesterdayStr() { const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().split('T')[0]; }
+
+// -------- DATE --------
+document.getElementById('dateLine').textContent = new Date().toLocaleDateString('fr-FR', {weekday:'long',day:'numeric',month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());
+
+// -------- VIEWS --------
+function switchView(v) {
+  ['chantiers','historique','infos'].forEach(n => {
+    document.getElementById('view-'+n).style.display = n===v?'block':'none';
+    document.getElementById('btn-'+n).classList.toggle('active', n===v);
+  });
+  document.getElementById('content').scrollTop = 0;
+}
+
+// -------- FETCH --------
+async function fetchData() {
+  setStatus('loading');
+  try {
+    const r = await fetch(PROXY_URL, { cache:'no-store' });
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    const json = await r.json();
+    allData = parseNotion(json.results || []).map(c => localPaidIds.has(c.id) ? {...c, statut:'Payé'} : c);
+    setStatus('live');
+  } catch(e) {
+    if (allData.length === 0) {
+      allData = DEMO;
+      setStatus('demo');
+    } else {
+      setStatus('offline');
+    }
+  }
+  render();
+}
+
+function parseNotion(results) {
+  return results.map(p => {
+    const props = p.properties;
+    return {
+      id: p.id,
+      client: getText(props['Nom client'] || props['Client'] || props['Nom']),
+      prix: getNumber(props['Prix'] || props['Montant'] || props['Budget']),
+      service: getSelect(props['type de chantier'] || props['Service'] || props['Type']),
+      heure: getText(props['Heure'] || props['Horaire']),
+      adresse: getText(props['Adresse'] || props['Lieu']),
+      tel: getPhone(props['téléphone'] || props['Téléphone'] || props['Tel']),
+      statut: getSelect(props['Statut'] || props['Status']),
+      date: getDate(props['date'] || props['Date chantier'] || props['Date']),
+    };
+  }).filter(c => c.client);
+}
+
+function getText(prop) {
+  if (!prop) return '';
+  if (prop.type==='title') return prop.title?.map(t=>t.plain_text).join('')||'';
+  if (prop.type==='rich_text') return prop.rich_text?.map(t=>t.plain_text).join('')||'';
+  if (prop.type==='phone_number') return prop.phone_number||'';
+  return '';
+}
+function getPhone(prop) {
+  if (!prop) return '';
+  if (prop.type==='phone_number') return prop.phone_number||'';
+  return getText(prop);
+}
+function getNumber(prop) { return prop?.number||0; }
+function getSelect(prop) { return prop?.select?.name||''; }
+function getDate(prop) { return prop?.date?.start||''; }
+
+// -------- RENDER --------
+function render() {
+  const planifies = allData.filter(c => c.statut !== 'Payé' && c.statut !== 'PAYE' && c.statut !== 'ANNULE' && c.statut !== 'à confirmer');
+  const payes = allData.filter(c => c.statut === 'Payé' || c.statut === 'PAYE');
+
+  potentiel = planifies.reduce((s,c)=>s+c.prix,0);
+  encaisse = payes.reduce((s,c)=>s+c.prix,0);
+
+  animateValue('statPotentiel', potentiel, true);
+  animateValue('statEncaisse', encaisse, true);
+
+  // Group planifies by date
+  const groups = {};
+  planifies.sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure));
+  planifies.forEach(c => {
+    const k = c.date||'Sans date';
+    if (!groups[k]) groups[k] = [];
+    groups[k].push(c);
+  });
+
+  const today = todayStr();
+  let html = '';
+  if (Object.keys(groups).length === 0) {
+    html = `<div class="empty"><div class="empty-emoji">🎉</div><div class="empty-text">Aucun chantier planifié</div></div>`;
+  } else {
+    Object.entries(groups).forEach(([date, chantiers]) => {
+      const isToday = date === today;
+      const dateLabel = isToday ? 'Aujourd\'hui' : formatDate(date);
+      html += `<div class="date-group">
+        <div class="date-header">
+          <div class="date-label">${dateLabel}</div>
+          ${isToday ? '<div class="today-pill">AUJOURD\'HUI</div>' : ''}
+        </div>`;
+      chantiers.forEach(c => { html += cardHTML(c); });
+      html += '</div>';
+    });
+  }
+  document.getElementById('chantiersList').innerHTML = html;
+
+  // Historique
+  const histoTotal = payes.reduce((s,c)=>s+c.prix,0);
+  document.getElementById('histoTotal').textContent = histoTotal.toLocaleString('fr-FR')+'  €';
+  let hhtml = '';
+  if (payes.length === 0) {
+    hhtml = `<div class="empty"><div class="empty-emoji">📭</div><div class="empty-text">Aucun chantier payé</div></div>`;
+  } else {
+    payes.sort((a,b)=>(b.date).localeCompare(a.date));
+    payes.forEach(c => {
+      hhtml += `<div class="histo-card">
+        <div class="histo-left">
+          <div class="histo-name">${c.client}</div>
+          <div class="histo-meta">${c.service}${c.date?' — '+formatDate(c.date):''}</div>
+          <div class="paid-badge">✓ PAYÉ</div>
+        </div>
+        <div class="histo-price">${c.prix.toLocaleString('fr-FR')} €</div>
+      </div>`;
+    });
+  }
+  document.getElementById('histoList').innerHTML = hhtml;
+}
+
+function cardHTML(c) {
+  const badgeClass = {
+    'Plomberie':'badge-plomberie',
+    'Electricité':'badge-electricite','Électricité':'badge-electricite',
+    'Climatisation':'badge-climatisation'
+  }[c.service] || 'badge-autre';
+  const maps = c.adresse ? `https://maps.google.com/?q=${encodeURIComponent(c.adresse)}` : '#';
+  return `<div class="card" id="card-${c.id}">
+    <div class="card-top">
+      <div class="client-name">${c.client}</div>
+      <div class="price">${c.prix ? c.prix.toLocaleString('fr-FR')+' €' : '—'}</div>
+    </div>
+    <div class="service-badge ${badgeClass}">${c.service||'Service'}</div>
+    <div class="card-meta">${c.heure||''}${c.heure&&c.adresse?' — ':''}${c.adresse||''}</div>
+    <div class="card-actions">
+      <a class="btn" href="tel:${c.tel||''}" onclick="return ${!!c.tel}">
+        <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2A19.8 19.8 0 013.09 4.18 2 2 0 015.08 2h3a2 2 0 012 1.72c.127.96.36 1.903.7 2.81a2 2 0 01-.45 2.11L9.09 9.91a16 16 0 006.99 7l1.27-1.27a2 2 0 012.11-.45c.908.34 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        Appeler
+      </a>
+      <a class="btn" href="${maps}" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Y aller
+      </a>
+      <button class="btn btn-validate" id="vbtn-${c.id}" onclick="markPaid('${c.id}')">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Validé
+      </button>
+    </div>
+  </div>`;
+}
+
+// -------- MARK PAID --------
+async function markPaid(id) {
+  const card = document.getElementById('card-'+id);
+  const btn = document.getElementById('vbtn-'+id);
+  if (!card || !btn) return;
+
+  btn.classList.add('done');
+  card.classList.add('paying');
+
+  // Optimistic update
+  const item = allData.find(c=>c.id===id);
+  if (item) {
+    const oldPrix = item.prix;
+    item.statut = 'Payé';
+      localPaidIds.add(id);
+      localStorage.setItem('paidIds', JSON.stringify([...localPaidIds]));
+    potentiel -= oldPrix;
+    encaisse += oldPrix;
+    animateValue('statPotentiel', potentiel, true);
+    animateValue('statEncaisse', encaisse, true);
+  }
+
+  setTimeout(() => {
+    card.classList.add('paid-anim');
+    setTimeout(() => card.remove(), 400);
+  }, 300);
+
+  // API call (silent)
+  try {
+    if (!PROXY_URL.includes('TON-PROJET')) {
+      await fetch(PROXY_URL, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ pageId: id })
+      });
+    }
+  } catch(e) {}
+}
+
+// -------- UTILS --------
+function formatDate(str) {
+  if (!str) return '';
+  try {
+    return new Date(str+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,c=>c.toUpperCase());
+  } catch { return str; }
+}
+
+function animateValue(id, target, isMoney) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const current = parseInt(el.dataset.val||'0');
+  el.dataset.val = target;
+  const diff = target - current;
+  const steps = 20;
+  let i = 0;
+  clearInterval(el._timer);
+  el._timer = setInterval(() => {
+    i++;
+    const val = Math.round(current + diff * (i/steps));
+    el.textContent = val.toLocaleString('fr-FR') + ' €';
+    if (i >= steps) clearInterval(el._timer);
+  }, 16);
+}
+
+function setStatus(s) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot';
+  if (s==='live') { dot.classList.add('live'); txt.textContent='En direct'; }
+  else if (s==='loading') { dot.classList.add('loading'); txt.textContent='Actualisation...'; }
+  else if (s==='demo') { txt.textContent='Mode démo'; }
+  else { txt.textContent='Hors ligne'; }
+}
+
+// -------- PWA --------
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner').classList.add('show');
+});
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('install-banner').classList.remove('show');
+});
+
+// -------- SERVICE WORKER --------
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+
+// -------- START --------
+fetchData();
+refreshTimer = setInterval(fetchData, 30000);
+</script>
+</body>
+</html>

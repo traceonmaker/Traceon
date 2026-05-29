@@ -165,7 +165,7 @@ function StepLabel({ n, t, s }: { n:number; t:string; s:string }) {
     </div>
   )
 }
-function F({ label, val, set, ph, type='text' }: any) {
+function F({ label, val, set, ph, type='text' }: { label:string; val:string; set:(v:string)=>void; ph?:string; type?:string }) {
   return (
     <div>
       <label style={{fontSize:12,fontWeight:600,color:'var(--text2)',display:'block',marginBottom:6}}>{label}</label>
@@ -173,7 +173,7 @@ function F({ label, val, set, ph, type='text' }: any) {
     </div>
   )
 }
-function Actions({ onBack, onNext, disabled, labelNext, loading=false }: any) {
+function Actions({ onBack, onNext, disabled, labelNext, loading=false }: { onBack:()=>void; onNext:()=>void; disabled?:boolean; labelNext?:string; loading?:boolean }) {
   return (
     <div style={{display:'flex',gap:8,marginTop:24}}>
       <button onClick={onBack} className="btn-ghost" style={{width:'auto',padding:'13px 18px'}}>Retour</button>

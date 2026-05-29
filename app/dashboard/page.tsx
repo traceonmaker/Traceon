@@ -627,7 +627,7 @@ function Section({ title, action, children }: { title:string; action?:React.Reac
     </div>
   )
 }
-function Field({ label, val, set, type='text' }: any) {
+function Field({ label, val, set, type='text' }: { label:string; val:any; set:(v:string)=>void; type?:string }) {
   return (
     <div>
       <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>{label}</label>
@@ -635,7 +635,7 @@ function Field({ label, val, set, type='text' }: any) {
     </div>
   )
 }
-function Lab({ label, val, set, type='text' }: any) {
+function Lab({ label, val, set, type='text' }: { label:string; val:any; set:(v:string)=>void; type?:string }) {
   return (
     <div style={{flex:1}}>
       <label style={{fontSize:10,color:'var(--label)',fontWeight:700,letterSpacing:'0.03em',display:'block',marginBottom:4}}>{label}</label>
@@ -643,7 +643,7 @@ function Lab({ label, val, set, type='text' }: any) {
     </div>
   )
 }
-function Area({ label, val, set }: any) {
+function Area({ label, val, set }: { label:string; val:any; set:(v:string)=>void }) {
   return (
     <div>
       <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>{label}</label>

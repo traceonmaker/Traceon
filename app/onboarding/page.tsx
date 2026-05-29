@@ -260,7 +260,7 @@ export default function Onboarding() {
 function Shell({ children }: { children: React.ReactNode }) {
   return <div style={{minHeight:'100vh',background:'var(--bg-grad)',padding:'40px 16px 60px'}}>{children}</div>
 }
-function Field({ label, val, set, ph, type='text' }: any) {
+function Field({ label, val, set, ph, type='text' }: { label:string; val:string; set:(v:string)=>void; ph?:string; type?:string }) {
   return (
     <div>
       <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>{label}</label>
@@ -268,7 +268,7 @@ function Field({ label, val, set, ph, type='text' }: any) {
     </div>
   )
 }
-function LabeledInput({ label, val, set, type='text' }: any) {
+function LabeledInput({ label, val, set, type='text' }: { label:string; val:string|number; set:(v:string)=>void; type?:string }) {
   return (
     <div style={{flex:1}}>
       <label style={{fontSize:10,color:'var(--label)',fontWeight:700,letterSpacing:'0.03em',display:'block',marginBottom:4}}>{label}</label>
@@ -276,7 +276,7 @@ function LabeledInput({ label, val, set, type='text' }: any) {
     </div>
   )
 }
-function Area({ label, val, set, ph }: any) {
+function Area({ label, val, set, ph }: { label:string; val:string; set:(v:string)=>void; ph?:string }) {
   return (
     <div>
       <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>{label}</label>

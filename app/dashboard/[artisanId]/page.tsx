@@ -134,7 +134,7 @@ export default function Dashboard() {
         {/* Top bar */}
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:18}}>
           <div style={{display:'flex',alignItems:'center',gap:11}}>
-            <div style={{width:40,height:40,borderRadius:13,background:'linear-gradient(135deg,#14318a,#0a1a4e)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:800,color:'#fff',boxShadow:'var(--shadow-blue)'}}>
+            <div style={{width:40,height:40,borderRadius:13,background:'linear-gradient(135deg,#2f6bff,#0e47d2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:800,color:'#fff',boxShadow:'var(--shadow-blue)'}}>
               {(artisan.nom_entreprise||artisan.nom||'T')[0].toUpperCase()}
             </div>
             <div>
@@ -410,7 +410,7 @@ function Stats({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demand
           {caByMonth.map((ca,i)=>(
             <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:6,height:'100%',justifyContent:'flex-end'}}>
               <span style={{fontSize:9,fontWeight:700,color:'var(--text2)'}}>{ca>0?Math.round(ca):''}</span>
-              <div style={{width:'100%',maxWidth:32,height:`${Math.max((ca/maxCA)*100,3)}%`,background:i===5?'linear-gradient(180deg,#1a44d4,#0a1a4e)':'#cdddf5',borderRadius:'6px 6px 0 0',transformOrigin:'bottom',animation:`growBar .6s cubic-bezier(.22,1,.36,1) both`,animationDelay:`${i*0.06}s`,boxShadow:i===5?'0 4px 10px rgba(10,50,184,0.3)':'none'}} />
+              <div style={{width:'100%',maxWidth:32,height:`${Math.max((ca/maxCA)*100,3)}%`,background:i===5?'linear-gradient(180deg,#3a7bff,#0e47d2)':'#cdddf5',borderRadius:'6px 6px 0 0',transformOrigin:'bottom',animation:`growBar .6s cubic-bezier(.22,1,.36,1) both`,animationDelay:`${i*0.06}s`,boxShadow:i===5?'0 4px 10px rgba(10,50,184,0.3)':'none'}} />
               <span style={{fontSize:10,color:'var(--text2)',fontWeight:600}}>{months[i].toLocaleDateString('fr-FR',{month:'short'})}</span>
             </div>
           ))}
@@ -760,10 +760,10 @@ function CardChantier({ d, onValider, validating, removing=false, highlight=fals
         <Meta Icon={MapPin} txt={d.client_adresse} />
       </div>
       <div style={{display:'flex',gap:8}}>
-        <a href={`tel:${d.client_telephone}`} className="fab"><Phone size={17} /></a>
-        <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.client_adresse)}&travelmode=driving`} target="_blank" rel="noreferrer" className="fab"><MapPin size={17} /></a>
-        <button onClick={onValider} disabled={validating} className="btn-success" style={{flex:1,height:44}}>
-          {validating ? <span className="spinner spinner-w" /> : <><Check size={17}/>Validé</>}
+        <a href={`tel:${d.client_telephone}`} className="fab" style={{flex:1,height:44}}><Phone size={17} /></a>
+        <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.client_adresse)}&travelmode=driving`} target="_blank" rel="noreferrer" className="fab" style={{flex:1,height:44}}><MapPin size={17} /></a>
+        <button onClick={onValider} disabled={validating} className="btn-success" style={{flex:2,height:44}}>
+          {validating ? <span className="spinner spinner-w" /> : 'Validé'}
         </button>
       </div>
     </div>

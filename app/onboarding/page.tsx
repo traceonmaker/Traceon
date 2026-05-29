@@ -109,7 +109,7 @@ export default function Onboarding() {
         {/* En-tête + progression */}
         <div style={{marginBottom:24}}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
-            <div style={{width:44,height:44,borderRadius:14,background:'linear-gradient(135deg,#14318a,#0a1a4e)',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'var(--shadow-blue)'}}>
+            <div style={{width:44,height:44,borderRadius:14,background:'linear-gradient(135deg,#2f6bff,#0e47d2)',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'var(--shadow-blue)'}}>
               <Cur.Icon size={20} color="#fff" />
             </div>
             <div>

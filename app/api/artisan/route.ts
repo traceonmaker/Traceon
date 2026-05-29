@@ -28,6 +28,12 @@ export async function POST(req: NextRequest) {
     abonnement_actif: false,
   }).select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    // Email déjà utilisé (contrainte unique)
+    if (error.code === '23505' || /duplicate|unique/i.test(error.message)) {
+      return NextResponse.json({ error: 'Cet email est déjà utilisé. Connectez-vous ou utilisez une autre adresse.' }, { status: 409 })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json(data, { status: 201 })
 }

@@ -40,6 +40,7 @@ export default function Onboarding() {
   const [saving, setSaving] = useState(false)
   const [created, setCreated] = useState<{id:string}|null>(null)
   const [copied, setCopied] = useState(false)
+  const [erreur, setErreur] = useState('')
 
   const [d, setD] = useState({
     nom:'', email:'', telephone:'',
@@ -55,15 +56,33 @@ export default function Onboarding() {
   const set = (k:string,v:any)=>setD(p=>({...p,[k]:v}))
 
   async function logoUpload(file: File) {
+    // Réduit l'image à 256px max pour garder un petit poids (évite les erreurs d'envoi)
     const reader = new FileReader()
-    reader.onload = () => set('logo_url', reader.result as string)
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        const max = 256
+        const scale = Math.min(max / img.width, max / img.height, 1)
+        const c = document.createElement('canvas')
+        c.width = img.width * scale; c.height = img.height * scale
+        c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height)
+        set('logo_url', c.toDataURL('image/jpeg', 0.8))
+      }
+      img.src = reader.result as string
+    }
     reader.readAsDataURL(file)
   }
 
   async function finish() {
-    setSaving(true)
-    const r = await fetch('/api/artisan', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(d) })
-    if (r.ok) { const a = await r.json(); setCreated({ id: a.id }) }
+    setSaving(true); setErreur('')
+    try {
+      const r = await fetch('/api/artisan', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(d) })
+      const a = await r.json()
+      if (r.ok) { setCreated({ id: a.id }) }
+      else { setErreur(a.error || "Une erreur s'est produite. Réessayez.") }
+    } catch {
+      setErreur("Connexion impossible. Vérifiez votre réseau et réessayez.")
+    }
     setSaving(false)
   }
 
@@ -242,6 +261,13 @@ export default function Onboarding() {
             <Area label="Mentions légales" val={d.mentions_legales} set={v=>set('mentions_legales',v)} ph="SIRET, forme juridique, assurance décennale..." />
             <Area label="Conditions générales de vente (CGV)" val={d.cgv} set={v=>set('cgv',v)} />
             <Area label="Politique de confidentialité (RGPD)" val={d.rgpd} set={v=>set('rgpd',v)} ph="Usage des données client..." />
+          </div>
+        )}
+
+        {/* Erreur */}
+        {erreur && (
+          <div style={{marginTop:18,background:'#fef2f2',border:'1px solid #fecaca',color:'#dc2626',borderRadius:12,padding:'12px 14px',fontSize:13,fontWeight:600}}>
+            {erreur}
           </div>
         )}
 

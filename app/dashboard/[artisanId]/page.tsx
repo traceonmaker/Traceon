@@ -226,34 +226,36 @@ function Accueil({ today, nouvelles, encaisse, potentiel, confirmes, valider, va
         </div>
       </>}
 
-      {/* Planning du jour + prochains chantiers */}
-      <SectionTitle title="Planning du jour" />
-      {today.length>0 && (
-        <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
-          {today.map((d:Demande)=><CardChantier key={d.id} d={d} onValider={()=>valider(d.id)} validating={validating===d.id} removing={removing===d.id} highlight />)}
-        </div>
-      )}
-      {today.length===0 && (
-        <div style={{marginBottom:20}}>
-          <div className="card" style={{padding:'16px',display:'flex',alignItems:'center',gap:12,marginBottom:14}}>
-            <div className="icon-tile" style={{width:40,height:40,borderRadius:12,background:'var(--green-dim)'}}><CalendarDays size={19} color="var(--green)"/></div>
-            <div><p style={{fontSize:14,fontWeight:700}}>Journée libre aujourd'hui</p><p style={{fontSize:12,color:'var(--text3)'}}>Voici vos prochains chantiers.</p></div>
-          </div>
-        </div>
-      )}
-
-      {/* Prochains chantiers (jours suivants) */}
+      {/* Chantiers groupés par jour — date en titre noir, heure sur les cartes */}
       {(() => {
-        const upcoming = (confirmes as Demande[]).filter(d => d.date_chantier && !isToday(d.date_chantier))
-        if (upcoming.length === 0) {
-          return today.length===0 ? <Empty Icon={CalendarDays} title="Aucun chantier à venir" sub="Les chantiers confirmés s'afficheront ici." /> : null
+        const list = (confirmes as Demande[]).filter(d => d.date_chantier)
+        if (list.length === 0) {
+          return <Empty Icon={CalendarDays} title="Aucun chantier planifié" sub="Vos chantiers confirmés s'afficheront ici, groupés par jour." />
         }
-        return <>
-          <SectionTitle title="Prochains chantiers" />
-          <div style={{display:'flex',flexDirection:'column',gap:10}}>
-            {upcoming.map((d:Demande)=><CardChantier key={d.id} d={d} onValider={()=>valider(d.id)} validating={validating===d.id} removing={removing===d.id} highlight={isTomorrow(d.date_chantier!)} />)}
+        // Regroupe par jour
+        const groups: { key:string; label:string; isToday:boolean; items:Demande[] }[] = []
+        for (const d of list) {
+          const ds = new Date(d.date_chantier!).toDateString()
+          let g = groups.find(x => x.key === ds)
+          if (!g) {
+            const label = isToday(d.date_chantier!) ? "Aujourd'hui" : isTomorrow(d.date_chantier!) ? 'Demain' : formatDate(d.date_chantier!)
+            g = { key: ds, label, isToday: isToday(d.date_chantier!), items: [] }
+            groups.push(g)
+          }
+          g.items.push(d)
+        }
+        return groups.map(g => (
+          <div key={g.key} style={{marginBottom:22}}>
+            {/* Date en titre noir */}
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+              <h2 className="section-title" style={{textTransform:'capitalize'}}>{g.label}</h2>
+              <span style={{fontSize:12,fontWeight:700,color:'var(--text3)'}}>· {g.items.length} chantier{g.items.length>1?'s':''}</span>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              {g.items.map((d:Demande)=><CardChantier key={d.id} d={d} onValider={()=>valider(d.id)} validating={validating===d.id} removing={removing===d.id} highlight={g.isToday} />)}
+            </div>
           </div>
-        </>
+        ))
       })()}
     </div>
   )
@@ -746,9 +748,9 @@ function CardChantier({ d, onValider, validating, removing=false, highlight=fals
   const s = svc(d.type_intervention)
   return (
     <div className={`card card-client card-interactive ${removing?'card-validating':''}`} style={{padding:14}}>
-      {/* Date à gauche, montant en haut à droite (gros) */}
+      {/* Heure à gauche (la date est le titre de section), montant en haut à droite */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:12}}>
-        {c ? <span className="date-badge"><CalendarDays size={13}/>{formatDate(c.date)} · {formatHeure(c.heure_debut)}</span> : <span/>}
+        {c ? <span className="date-badge"><Clock size={13}/>{formatHeure(c.heure_debut)} – {formatHeure(c.heure_fin)}</span> : <span/>}
         <span className="amount-green" style={{fontSize:22}}>{formatPrix(d.prix_estime||0)}</span>
       </div>
       <div style={{marginBottom:12}}>

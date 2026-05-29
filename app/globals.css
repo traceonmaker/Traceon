@@ -3,8 +3,8 @@
 :root {
   --bg:        #ffffff;
   --bg-grad:
-    radial-gradient(115% 55% at 50% -10%, #2f7bff 0%, rgba(80,150,255,0.45) 26%, rgba(220,235,255,0.35) 48%, rgba(255,255,255,0) 66%),
-    linear-gradient(180deg, #e6f0ff 0%, #f3f8ff 34%, #ffffff 72%);
+    radial-gradient(120% 58% at 50% -12%, #07154e 0%, #102a78 22%, rgba(70,120,210,0.28) 46%, rgba(255,255,255,0) 66%),
+    linear-gradient(180deg, #eaf0fb 0%, #f5f9ff 32%, #ffffff 72%);
   --surface:   #ffffff;
   --surface2:  #f6f9ff;
   --border:    #e4ebf5;
@@ -13,11 +13,11 @@
   --text2:     #3d4a5c;
   --text3:     #64748b;
   --label:     #5a6b80;
-  --blue:      #0a47d8;
-  --blue-600:  #0639bb;
-  --blue-dim:  #e8eeff;
-  --blue-mid:  #cbdcff;
-  --blue-glow: rgba(10,71,216,0.34);
+  --blue:      #0a32b8;
+  --blue-600:  #07268f;
+  --blue-dim:  #eaeeff;
+  --blue-mid:  #ccd6ff;
+  --blue-glow: rgba(10,50,184,0.34);
   --green:     #059669;
   --green-dim: #ecfdf5;
   --red:       #dc2626;
@@ -103,7 +103,19 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
     0 2px 6px rgba(15,23,42,0.06),
     0 10px 24px rgba(15,23,42,0.08),
     0 20px 48px rgba(30,64,175,0.06);
+  transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease;
 }
+/* léger soulèvement des cartes interactives */
+.card-interactive { cursor: default; }
+.card-interactive:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,1) inset,
+    0 4px 10px rgba(15,23,42,0.08),
+    0 16px 32px rgba(15,23,42,0.12),
+    0 28px 60px rgba(10,50,184,0.10);
+}
+.card-interactive:active { transform: translateY(-1px) scale(.995); }
 /* contour dégradé fin qui capte la lumière */
 .card::after {
   content: '';
@@ -117,7 +129,7 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
 }
 
 .btn-primary {
-  background: linear-gradient(180deg, #1f6bff 0%, #0a47d8 52%, #0639bb 100%);
+  background: linear-gradient(180deg, #1a44d4 0%, #0a32b8 52%, #07268f 100%);
   color: #fff;
   border-radius: 14px;
   font-weight: 700;
@@ -250,27 +262,27 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
   position: relative;
   border-radius: 26px;
   background:
-    radial-gradient(135% 110% at 0% 0%, #1565ff 0%, #0a47d8 44%, #042aa0 100%);
+    radial-gradient(135% 120% at 8% 0%, #1f3f9e 0%, #112a72 32%, #0a1a4e 60%, #05091f 100%);
   box-shadow:
-    0 1px 0 rgba(255,255,255,0.28) inset,
-    0 2px 8px rgba(10,71,216,0.3),
-    0 18px 44px rgba(10,71,216,0.42),
-    0 32px 64px rgba(4,42,160,0.3);
+    0 1px 0 rgba(255,255,255,0.18) inset,
+    0 2px 8px rgba(5,9,31,0.4),
+    0 18px 44px rgba(7,21,78,0.45),
+    0 32px 70px rgba(5,9,31,0.4);
   overflow: hidden;
   color: #fff;
 }
-/* halo lumineux haut-droite */
+/* halo bleu électrique haut-droite */
 .hero-card::before {
-  content:''; position:absolute; top:-55%; right:-18%;
+  content:''; position:absolute; top:-50%; right:-15%;
   width: 280px; height: 280px;
-  background: radial-gradient(circle, rgba(255,255,255,0.28) 0%, transparent 62%);
+  background: radial-gradient(circle, rgba(59,110,255,0.5) 0%, transparent 62%);
   pointer-events: none;
 }
-/* lueur basse + grain de profondeur */
+/* lueur basse */
 .hero-card::after {
-  content:''; position:absolute; bottom:-65%; left:-12%;
+  content:''; position:absolute; bottom:-60%; left:-10%;
   width: 260px; height: 260px;
-  background: radial-gradient(circle, rgba(96,165,250,0.45) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(37,80,220,0.4) 0%, transparent 60%);
   pointer-events: none;
 }
 /* fine ligne de reflet sur le bord supérieur */
@@ -285,13 +297,13 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
   position: fixed; bottom: 14px; left: 16px; right: 16px; z-index: 40;
   display: flex; align-items: center; justify-content: space-around;
   padding: 8px 8px;
-  background: linear-gradient(135deg, #0a47d8 0%, #1565ff 50%, #0a47d8 100%);
+  background: linear-gradient(135deg, #0a1a4e 0%, #14318a 50%, #0a1a4e 100%);
   border-radius: 22px;
-  border: 1px solid rgba(255,255,255,0.18);
+  border: 1px solid rgba(90,130,255,0.22);
   box-shadow:
-    0 1px 0 rgba(255,255,255,0.35) inset,
-    0 8px 24px rgba(10,71,216,0.4),
-    0 16px 40px rgba(10,71,216,0.24);
+    0 1px 0 rgba(120,150,255,0.25) inset,
+    0 8px 24px rgba(5,9,31,0.45),
+    0 16px 40px rgba(7,21,78,0.4);
   max-width: 448px; margin: 0 auto;
 }
 .nav-item {

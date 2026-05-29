@@ -134,7 +134,7 @@ export default function Dashboard() {
         {/* Top bar */}
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:18}}>
           <div style={{display:'flex',alignItems:'center',gap:11}}>
-            <div style={{width:40,height:40,borderRadius:13,background:'linear-gradient(135deg,#2563eb,#60a5fa)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:800,color:'#fff',boxShadow:'var(--shadow-blue)'}}>
+            <div style={{width:40,height:40,borderRadius:13,background:'linear-gradient(135deg,#14318a,#0a1a4e)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:800,color:'#fff',boxShadow:'var(--shadow-blue)'}}>
               {(artisan.nom_entreprise||artisan.nom||'T')[0].toUpperCase()}
             </div>
             <div>
@@ -410,7 +410,7 @@ function Stats({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demand
           {caByMonth.map((ca,i)=>(
             <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:6,height:'100%',justifyContent:'flex-end'}}>
               <span style={{fontSize:9,fontWeight:700,color:'var(--text2)'}}>{ca>0?Math.round(ca):''}</span>
-              <div style={{width:'100%',maxWidth:32,height:`${Math.max((ca/maxCA)*100,3)}%`,background:i===5?'linear-gradient(180deg,#2f86ff,#0a6bff)':'#cdddf5',borderRadius:'6px 6px 0 0',transformOrigin:'bottom',animation:`growBar .6s cubic-bezier(.22,1,.36,1) both`,animationDelay:`${i*0.06}s`,boxShadow:i===5?'0 4px 10px rgba(10,107,255,0.3)':'none'}} />
+              <div style={{width:'100%',maxWidth:32,height:`${Math.max((ca/maxCA)*100,3)}%`,background:i===5?'linear-gradient(180deg,#1a44d4,#0a1a4e)':'#cdddf5',borderRadius:'6px 6px 0 0',transformOrigin:'bottom',animation:`growBar .6s cubic-bezier(.22,1,.36,1) both`,animationDelay:`${i*0.06}s`,boxShadow:i===5?'0 4px 10px rgba(10,50,184,0.3)':'none'}} />
               <span style={{fontSize:10,color:'var(--text2)',fontWeight:600}}>{months[i].toLocaleDateString('fr-FR',{month:'short'})}</span>
             </div>
           ))}
@@ -720,7 +720,7 @@ function CardDemande({ d, i, onCreneaux }: { d:Demande; i:number; onCreneaux:()=
   const isNew = d.statut === 'nouvelle'
   const s = svc(d.type_intervention)
   return (
-    <div className={`card a-fadeUp d${Math.min(i+1,6)}`} style={{padding:14,border:`1px solid ${isNew?'var(--blue-mid)':'var(--border)'}`,boxShadow:isNew?'var(--shadow)':'var(--shadow-sm)'}}>
+    <div className={`card card-interactive a-fadeUp d${Math.min(i+1,6)}`} style={{padding:14,border:`1px solid ${isNew?'var(--blue-mid)':'var(--border)'}`,boxShadow:isNew?'var(--shadow)':'var(--shadow-sm)'}}>
       <div style={{display:'flex',alignItems:'flex-start',gap:12,marginBottom:12}}>
         <div className="icon-tile" style={{width:44,height:44,borderRadius:13,background:`${s.color}14`}}><s.Icon size={20} color={s.color} /></div>
         <div style={{flex:1,minWidth:0}}>
@@ -746,7 +746,7 @@ function CardChantier({ d, onValider, validating, removing=false, highlight=fals
   const c = d.creneau_accepte
   const s = svc(d.type_intervention)
   return (
-    <div className={`card ${removing?'card-validating':''}`} style={{padding:14,border:`1px solid ${highlight?'var(--blue-mid)':'var(--border)'}`,boxShadow:highlight?'var(--shadow)':'var(--shadow-sm)'}}>
+    <div className={`card card-interactive ${removing?'card-validating':''}`} style={{padding:14,border:`1px solid ${highlight?'var(--blue-mid)':'var(--border)'}`,boxShadow:highlight?'var(--shadow)':'var(--shadow-sm)'}}>
       <div style={{display:'flex',alignItems:'flex-start',gap:12,marginBottom:10}}>
         <div className="icon-tile" style={{width:44,height:44,borderRadius:13,background:`${s.color}14`}}><s.Icon size={20} color={s.color} /></div>
         <div style={{flex:1}}>
@@ -763,7 +763,7 @@ function CardChantier({ d, onValider, validating, removing=false, highlight=fals
         <a href={`tel:${d.client_telephone}`} className="fab"><Phone size={17} /></a>
         <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.client_adresse)}&travelmode=driving`} target="_blank" rel="noreferrer" className="fab"><MapPin size={17} /></a>
         <button onClick={onValider} disabled={validating} className="btn-success" style={{flex:1,height:44}}>
-          {validating ? <span className="spinner spinner-w" /> : <><Check size={17}/>Validé — Payé</>}
+          {validating ? <span className="spinner spinner-w" /> : <><Check size={17}/>Validé</>}
         </button>
       </div>
     </div>

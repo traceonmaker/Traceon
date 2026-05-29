@@ -55,7 +55,7 @@ export default function Formulaire() {
     <Shell>
       <div style={{maxWidth:400,margin:'0 auto',width:'100%'}}>
         <div style={{textAlign:'center',marginBottom:30}} className="a-fadeUp">
-          <div style={{width:54,height:54,borderRadius:16,background:'linear-gradient(135deg,#2563eb,#60a5fa)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px',boxShadow:'var(--shadow-blue)'}}>
+          <div style={{width:54,height:54,borderRadius:16,background:'linear-gradient(135deg,#14318a,#0a1a4e)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px',boxShadow:'var(--shadow-blue)'}}>
             <Wrench size={24} color="#fff" />
           </div>
           <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-0.03em'}}>{artisan.nom_entreprise || artisan.nom}</h1>
@@ -139,7 +139,7 @@ export default function Formulaire() {
               ))}
             </div>
             {prix && (
-              <div style={{background:'linear-gradient(135deg,#2563eb,#3b82f6)',borderRadius:18,padding:'20px 16px',marginBottom:20,textAlign:'center',color:'#fff',boxShadow:'var(--shadow-blue)'}}>
+              <div style={{background:'linear-gradient(135deg,#14318a,#0a1a4e)',borderRadius:18,padding:'20px 16px',marginBottom:20,textAlign:'center',color:'#fff',boxShadow:'var(--shadow-blue)'}}>
                 <p style={{fontSize:11,fontWeight:600,opacity:.85,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:6}}>Estimation indicative</p>
                 <p style={{fontSize:38,fontWeight:800,letterSpacing:'-0.05em'}}>{formatPrix(prix)}</p>
                 <p style={{fontSize:12,opacity:.8,marginTop:4}}>Prix définitif après diagnostic</p>

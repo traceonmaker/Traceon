@@ -544,7 +544,6 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [copied, setCopied] = useState(false)
   const set = (k:keyof Artisan, v:any) => setF(p=>({...p,[k]:v}))
   const types = f.types_chantier as TypeChantier[]
   const prest = f.prestations as Prestation[]
@@ -556,7 +555,6 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
     setSaving(true); await save(f); setSaving(false); setSaved(true); setTimeout(()=>setSaved(false),2000)
   }
   function logoUpload(file: File) { const r=new FileReader(); r.onload=()=>set('logo_url',r.result as string); r.readAsDataURL(file) }
-  const onboardLink = `${typeof window!=='undefined'?window.location.origin:''}/onboarding`
 
   return (
     <div className="a-fadeUp" style={{display:'flex',flexDirection:'column',gap:14}}>
@@ -701,17 +699,46 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
         {saving ? <span className="spinner spinner-w" /> : saved ? <><Check size={17}/>Enregistré</> : <><Save size={17}/>Enregistrer</>}
       </button>
 
-      {/* Dupliquer le core app */}
-      <Section title="Dupliquer TraceOn">
-        <p style={{fontSize:12,color:'var(--text2)',marginBottom:12,lineHeight:1.5}}>Partagez ce lien à une autre entreprise : elle configure son propre espace en quelques minutes.</p>
-        <div style={{display:'flex',gap:8,alignItems:'center'}}>
-          <span style={{flex:1,fontSize:12,color:'var(--text2)',background:'var(--surface2)',padding:'10px 12px',borderRadius:10,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{onboardLink}</span>
-          <button onClick={()=>{navigator.clipboard.writeText(onboardLink);setCopied(true);setTimeout(()=>setCopied(false),1500)}} className="fab">
-            {copied ? <Check size={16} color="var(--green)"/> : <Copy size={16}/>}
-          </button>
-        </div>
-      </Section>
+      {/* Installer l'application */}
+      <InstallSection />
     </div>
+  )
+}
+
+/* Section "Installer l'app" — bouton natif (Android) + instructions (iOS) */
+function InstallSection() {
+  const [deferred, setDeferred] = useState<any>(null)
+  const [installed, setInstalled] = useState(false)
+  const [isIOS, setIsIOS] = useState(false)
+  useEffect(() => {
+    setInstalled(window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone)
+    setIsIOS(/iphone|ipad|ipod/i.test(navigator.userAgent))
+    const h = (e:any) => { e.preventDefault(); setDeferred(e) }
+    window.addEventListener('beforeinstallprompt', h)
+    return () => window.removeEventListener('beforeinstallprompt', h)
+  }, [])
+  async function install() { if (deferred) { deferred.prompt(); await deferred.userChoice; setDeferred(null) } }
+  return (
+    <Section title="Installer l'application">
+      {installed ? (
+        <div style={{display:'flex',alignItems:'center',gap:10,fontSize:13,color:'var(--green)',fontWeight:600}}>
+          <Check size={16}/> Application installée sur cet appareil
+        </div>
+      ) : (
+        <>
+          <p style={{fontSize:12,color:'var(--text2)',marginBottom:14,lineHeight:1.5}}>Ajoutez TraceOn à votre écran d'accueil pour y accéder comme une vraie application, en plein écran.</p>
+          {deferred && !isIOS && (
+            <button onClick={install} className="btn-primary" style={{marginBottom:14}}><Download size={17}/>Ajouter à l'écran d'accueil</button>
+          )}
+          <div style={{background:'var(--surface2)',borderRadius:12,padding:14,border:'1px solid var(--border)'}}>
+            <p style={{fontSize:12,fontWeight:700,marginBottom:8,display:'flex',alignItems:'center',gap:6}}>📱 Sur iPhone (Safari)</p>
+            <p style={{fontSize:12.5,color:'var(--text2)',lineHeight:1.7}}>1. Bouton <b>Partager</b> (carré + flèche ↑)<br/>2. <b>Sur l'écran d'accueil</b> → Ajouter</p>
+            <p style={{fontSize:12,fontWeight:700,margin:'12px 0 8px',display:'flex',alignItems:'center',gap:6}}>🤖 Sur Android (Chrome)</p>
+            <p style={{fontSize:12.5,color:'var(--text2)',lineHeight:1.7}}>1. Menu <b>⋮</b> (3 points)<br/>2. <b>Ajouter à l'écran d'accueil</b></p>
+          </div>
+        </>
+      )}
+    </Section>
   )
 }
 function Section({ title, action, children }: { title:string; action?:React.ReactNode; children:React.ReactNode }) {

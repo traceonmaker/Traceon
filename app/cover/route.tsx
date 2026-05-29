@@ -8,36 +8,26 @@ export async function GET() {
     (
       <div style={{
         width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
+        alignItems: 'center', justifyContent: 'flex-start',
         background: 'linear-gradient(135deg, #2f6bff 0%, #0e3bb0 45%, #071a55 80%, #040f33 100%)',
-        color: '#fff', fontFamily: 'sans-serif', padding: '0 60px',
+        color: '#fff', fontFamily: 'sans-serif', paddingTop: 78,
       }}>
         <div style={{
-          width: 92, height: 92, borderRadius: 24, display: 'flex',
+          width: 96, height: 96, borderRadius: 26, display: 'flex',
           alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(255,255,255,0.16)', border: '2px solid rgba(255,255,255,0.35)',
-          fontSize: 50, fontWeight: 900, marginBottom: 26,
+          background: 'rgba(255,255,255,0.16)', border: '2px solid rgba(255,255,255,0.38)',
+          fontSize: 52, fontWeight: 900, marginBottom: 26,
         }}>T</div>
 
-        <div style={{ display: 'flex', fontSize: 76, fontWeight: 900, letterSpacing: -3, marginBottom: 18 }}>
+        <div style={{ display: 'flex', fontSize: 84, fontWeight: 900, letterSpacing: -3 }}>
           <span>Trace</span><span style={{ color: '#7eb0ff' }}>On</span>
         </div>
 
         <div style={{
-          display: 'flex', fontSize: 30, fontWeight: 700, textAlign: 'center',
-          maxWidth: 820, lineHeight: 1.3, marginBottom: 30,
+          display: 'flex', fontSize: 22, fontWeight: 600, letterSpacing: 6,
+          marginTop: 14, opacity: 0.8,
         }}>
-          Sites web &amp; applications pro pour entreprises — sur abonnement.
-        </div>
-
-        <div style={{ display: 'flex', gap: 14 }}>
-          {['Livré rapidement', 'Tout géré', 'Sans gros budget'].map(t => (
-            <div key={t} style={{
-              display: 'flex', background: 'rgba(255,255,255,0.14)',
-              border: '1px solid rgba(255,255,255,0.28)', borderRadius: 100,
-              padding: '12px 24px', fontSize: 22, fontWeight: 600,
-            }}>{t}</div>
-          ))}
+          STUDIO DIGITAL
         </div>
       </div>
     ),

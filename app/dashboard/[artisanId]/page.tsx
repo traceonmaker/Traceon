@@ -720,21 +720,17 @@ function CardDemande({ d, i, onCreneaux }: { d:Demande; i:number; onCreneaux:()=
   const s = svc(d.type_intervention)
   return (
     <div className={`card card-client card-interactive a-fadeUp d${Math.min(i+1,6)}`} style={{padding:14}}>
-      <div style={{display:'flex',alignItems:'flex-start',gap:12,marginBottom:12}}>
-        <div className="icon-tile" style={{width:44,height:44,borderRadius:13,background:`${s.color}14`}}><s.Icon size={20} color={s.color} /></div>
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10,marginBottom:12}}>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-            <span style={{fontSize:15,fontWeight:700}}>{d.client_nom}</span>
+          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:6}}>
+            <span style={{fontSize:16,fontWeight:700}}>{d.client_nom}</span>
             {isNew && <span className="badge" style={{background:'var(--blue-dim)',color:'var(--blue)'}}>Nouveau</span>}
             {d.statut==='creneau_propose' && <span className="badge" style={{background:'var(--amber-dim)',color:'var(--amber)'}}>En attente</span>}
           </div>
-          {/* Type sous le prénom */}
-          <span style={{display:'inline-flex',alignItems:'center',gap:6,background:'#0c1424',color:'#fff',fontSize:12,fontWeight:700,padding:'3px 10px',borderRadius:8,marginTop:5}}>
-            <span style={{width:7,height:7,borderRadius:'50%',background:s.color}} />{d.type_intervention}
-          </span>
-          <p style={{fontSize:12,color:'var(--text3)',marginTop:5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{d.client_adresse}</p>
+          <span style={{display:'inline-flex',alignItems:'center',background:`${s.color}1a`,color:s.color,fontSize:12,fontWeight:700,padding:'3px 11px',borderRadius:8}}>{d.type_intervention}</span>
+          <p style={{fontSize:12,color:'var(--text3)',marginTop:6,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{d.client_adresse}</p>
         </div>
-        {d.prix_estime && <span className="amount-green" style={{fontSize:17,flexShrink:0}}>{formatPrix(d.prix_estime)}</span>}
+        {d.prix_estime && <span className="amount-green" style={{fontSize:20,flexShrink:0}}>{formatPrix(d.prix_estime)}</span>}
       </div>
       {d.client_description && <p style={{fontSize:12,color:'var(--text2)',background:'var(--surface2)',borderRadius:10,padding:'8px 11px',marginBottom:12}}>{d.client_description}</p>}
       <div style={{display:'flex',gap:8}}>
@@ -755,25 +751,20 @@ function CardChantier({ d, onValider, validating, removing=false, highlight=fals
         {c ? <span className="date-badge"><CalendarDays size={13}/>{formatDate(c.date)} · {formatHeure(c.heure_debut)}</span> : <span/>}
         <span className="amount-green" style={{fontSize:22}}>{formatPrix(d.prix_estime||0)}</span>
       </div>
-      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}>
-        <div className="icon-tile" style={{width:44,height:44,borderRadius:13,background:`${s.color}14`}}><s.Icon size={20} color={s.color} /></div>
-        <div style={{flex:1,minWidth:0}}>
-          {/* Nom client, puis type de chantier en dessous */}
-          <p style={{fontSize:15,fontWeight:700,marginBottom:5}}>{d.client_nom}</p>
-          <span style={{display:'inline-flex',alignItems:'center',gap:6,background:'#0c1424',color:'#fff',fontSize:12,fontWeight:700,padding:'3px 10px',borderRadius:8}}>
-            <span style={{width:7,height:7,borderRadius:'50%',background:s.color}} />{d.type_intervention}
-          </span>
-        </div>
+      <div style={{marginBottom:12}}>
+        {/* Nom client, puis métier (badge couleur) en dessous */}
+        <p style={{fontSize:16,fontWeight:700,marginBottom:6}}>{d.client_nom}</p>
+        <span style={{display:'inline-flex',alignItems:'center',background:`${s.color}1a`,color:s.color,fontSize:12,fontWeight:700,padding:'3px 11px',borderRadius:8}}>{d.type_intervention}</span>
       </div>
       <div style={{marginBottom:12}}><Meta Icon={MapPin} txt={d.client_adresse} /></div>
-      {/* Appel + Itinéraire équilibrés, puis Validé en dessous */}
-      <div style={{display:'flex',gap:8,marginBottom:8}}>
-        <a href={`tel:${d.client_telephone}`} className="fab" style={{flex:1,width:'auto',height:46,gap:7,fontSize:13,fontWeight:600}}><Phone size={17} />Appeler</a>
-        <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.client_adresse)}&travelmode=driving`} target="_blank" rel="noreferrer" className="fab" style={{flex:1,width:'auto',height:46,gap:7,fontSize:13,fontWeight:600}}><MapPin size={17} />Itinéraire</a>
+      {/* Appel + Itinéraire discrets (icônes), Validé = seule action avec texte */}
+      <div style={{display:'flex',gap:8}}>
+        <a href={`tel:${d.client_telephone}`} className="fab" style={{height:48}}><Phone size={18} /></a>
+        <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.client_adresse)}&travelmode=driving`} target="_blank" rel="noreferrer" className="fab" style={{height:48}}><MapPin size={18} /></a>
+        <button onClick={onValider} disabled={validating} className="btn-success" style={{flex:1,height:48,fontSize:15}}>
+          {validating ? <span className="spinner spinner-w" /> : 'Validé'}
+        </button>
       </div>
-      <button onClick={onValider} disabled={validating} className="btn-success" style={{width:'100%',height:48,fontSize:15}}>
-        {validating ? <span className="spinner spinner-w" /> : 'Validé'}
-      </button>
     </div>
   )
 }

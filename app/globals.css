@@ -3,8 +3,8 @@
 :root {
   --bg:        #ffffff;
   --bg-grad:
-    radial-gradient(120% 62% at 50% -14%, #07205f 0%, #0e3bb0 16%, #2f6bff 34%, rgba(130,175,255,0.34) 54%, rgba(255,255,255,0) 72%),
-    linear-gradient(180deg, #e7eefc 0%, #f4f8ff 34%, #ffffff 74%);
+    radial-gradient(120% 44% at 50% -16%, #07205f 0%, #0e3bb0 14%, #2f6bff 28%, rgba(130,175,255,0.28) 42%, rgba(255,255,255,0) 56%),
+    linear-gradient(180deg, #e7eefc 0%, #f5f9ff 24%, #ffffff 50%);
   --surface:   #ffffff;
   --surface2:  #f6f9ff;
   --border:    #e4ebf5;
@@ -73,15 +73,14 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
   100% { transform: translate3d(-14px,16px,0) scale(1.12); opacity:1 }
 }
 
-/* Lueur d'ambiance animée en fond */
+/* Lueur d'ambiance animée — confinée tout en haut pour ne rien masquer */
 .app-glow {
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  position: fixed; top: 0; left: 0; right: 0; height: 320px; z-index: 0; pointer-events: none;
   background:
-    radial-gradient(46% 30% at 18% 4%, rgba(47,107,255,0.28) 0%, transparent 62%),
-    radial-gradient(42% 28% at 88% 8%, rgba(139,62,232,0.20) 0%, transparent 60%),
-    radial-gradient(50% 30% at 60% 0%, rgba(10,46,146,0.22) 0%, transparent 65%);
-  animation: glowDrift 14s ease-in-out infinite alternate;
-  filter: blur(8px);
+    radial-gradient(40% 60% at 16% 0%, rgba(47,107,255,0.22) 0%, transparent 70%),
+    radial-gradient(38% 55% at 90% 0%, rgba(139,62,232,0.16) 0%, transparent 70%);
+  animation: glowDrift 16s ease-in-out infinite alternate;
+  filter: blur(10px);
 }
 
 /* sous-cartes stats du hero — détachées + animées */

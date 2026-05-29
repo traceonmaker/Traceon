@@ -748,17 +748,19 @@ function CardChantier({ d, onValider, validating, removing=false, highlight=fals
   const s = svc(d.type_intervention)
   return (
     <div className={`card card-client card-interactive ${removing?'card-validating':''}`} style={{padding:14}}>
-      {/* Heure à gauche (la date est le titre de section), montant en haut à droite */}
+      {/* Heure (juste les chiffres), montant en haut à droite */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:12}}>
-        {c ? <span className="date-badge"><Clock size={13}/>{formatHeure(c.heure_debut)} – {formatHeure(c.heure_fin)}</span> : <span/>}
+        {c ? <span style={{fontSize:15,fontWeight:700,color:'var(--text2)',letterSpacing:'-0.01em'}}>{formatHeure(c.heure_debut)} – {formatHeure(c.heure_fin)}</span> : <span/>}
         <span className="amount-green" style={{fontSize:22}}>{formatPrix(d.prix_estime||0)}</span>
       </div>
       <div style={{marginBottom:12}}>
-        {/* Nom client, puis métier (badge couleur) en dessous */}
+        {/* Nom client, puis métier + localisation côte à côte */}
         <p style={{fontSize:16,fontWeight:700,marginBottom:6}}>{d.client_nom}</p>
-        <span style={{display:'inline-flex',alignItems:'center',background:`${s.color}1a`,color:s.color,fontSize:12,fontWeight:700,padding:'3px 11px',borderRadius:8}}>{d.type_intervention}</span>
+        <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+          <span style={{display:'inline-flex',alignItems:'center',background:`${s.color}1a`,color:s.color,fontSize:12,fontWeight:700,padding:'3px 11px',borderRadius:8}}>{d.type_intervention}</span>
+          <Meta Icon={MapPin} txt={d.client_adresse} />
+        </div>
       </div>
-      <div style={{marginBottom:12}}><Meta Icon={MapPin} txt={d.client_adresse} /></div>
       {/* Appel + Itinéraire discrets (icônes), Validé = seule action avec texte */}
       <div style={{display:'flex',gap:8}}>
         <a href={`tel:${d.client_telephone}`} className="fab" style={{height:48}}><Phone size={18} /></a>

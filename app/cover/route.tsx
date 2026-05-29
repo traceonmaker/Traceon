@@ -24,10 +24,10 @@ export async function GET() {
         </div>
 
         <div style={{
-          display: 'flex', fontSize: 22, fontWeight: 600, letterSpacing: 6,
-          marginTop: 14, opacity: 0.8,
+          display: 'flex', fontSize: 21, fontWeight: 600, letterSpacing: 5,
+          marginTop: 14, opacity: 0.85,
         }}>
-          STUDIO DIGITAL
+          SOLUTIONS DIGITALES
         </div>
       </div>
     ),

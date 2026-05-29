@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       to: client_telephone,
-      message: `Bonjour ${client_nom}, votre demande (${type_intervention}) a bien ete recue par ${artisan?.nom_entreprise || artisan?.nom}. Suivez l'avancement : ${process.env.NEXT_PUBLIC_APP_URL}/suivi/${data.token}`
+      message: `Bonjour ${client_nom}, votre demande (${type_intervention}) a bien été reçue par ${artisan?.nom_entreprise || artisan?.nom}. Suivez votre intervention ici : ${process.env.NEXT_PUBLIC_APP_URL}/suivi/${data.token}`
     })
   }).catch(() => {})
 

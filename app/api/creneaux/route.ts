@@ -18,14 +18,14 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const entreprise = demande.artisans?.nom_entreprise || demande.artisans?.nom
-  const creneauxText = creneaux.map((c: any) => `${c.date} a ${c.heure_debut}`).join(' / ')
+  const creneauxText = creneaux.map((c: any) => `${c.date} à ${c.heure_debut}`).join(' / ')
 
   await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/sms`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       to: demande.client_telephone,
-      message: `${entreprise} vous propose ces creneaux : ${creneauxText}. Choisissez ici : ${process.env.NEXT_PUBLIC_APP_URL}/suivi/${demande.token}`
+      message: `${entreprise} vous propose ces créneaux : ${creneauxText}. Choisissez le vôtre ici : ${process.env.NEXT_PUBLIC_APP_URL}/suivi/${demande.token}`
     })
   }).catch(() => {})
 

@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: demande.client_telephone,
-          message: `Intervention confirmee ! ${entreprise} interviendra le ${creneau.date} a ${creneau.heure_debut}. Votre devis : ${base}/api/devis/${token}`
+          message: `Intervention confirmée ! ${entreprise} interviendra le ${creneau.date} à ${creneau.heure_debut}. Votre devis : ${base}/api/devis/${token}`
         })
       }).catch(() => {})
     }

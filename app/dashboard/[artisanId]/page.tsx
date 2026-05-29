@@ -164,7 +164,7 @@ export default function Dashboard() {
         </div>
 
         {tab==='accueil'     && <Accueil today={today} nouvelles={nouvelles} encaisse={encaisse} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} goTo={setTab} />}
-        {tab==='planning'    && <Planning confirmes={confirmes} artisan={artisan} />}
+        {tab==='planning'    && <Planning confirmes={confirmes} artisan={artisan} save={saveArtisan} />}
         {tab==='historique'  && <Historique payes={payes} encaisse={encaisse} />}
         {tab==='stats'       && <Stats payes={payes} demandes={demandes} encaisse={encaisse} />}
         {tab==='parametres'  && <Parametres artisan={artisan} save={saveArtisan} />}
@@ -324,15 +324,29 @@ function Accueil({ today, nouvelles, encaisse, potentiel, confirmes, valider, va
 }
 
 /* ───────── PLANNING ───────── */
-function Planning({ confirmes, artisan }: { confirmes:Demande[]; artisan:Artisan }) {
+function Planning({ confirmes, artisan, save }: { confirmes:Demande[]; artisan:Artisan; save:(f:Partial<Artisan>)=>Promise<void> }) {
   const [weekOffset, setWeekOffset] = useState(0)
+  const [bloquer, setBloquer] = useState<string|null>(null) // date ISO en cours de blocage
+  const [bDebut, setBDebut] = useState('08:00')
+  const [bFin, setBFin] = useState('12:00')
   const base = new Date(); base.setHours(0,0,0,0)
   const monday = new Date(base); monday.setDate(base.getDate() - ((base.getDay()+6)%7) + weekOffset*7)
   const days = Array.from({length:7},(_,i)=>{ const dd=new Date(monday); dd.setDate(monday.getDate()+i); return dd })
-  const HOURS = Array.from({length:11},(_,i)=>8+i) // 8h → 18h
   const JOURS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']
+  const indispo = (artisan.indisponibilites as any[]) || []
 
   const slotsFor = (day:Date) => confirmes.filter(d => d.date_chantier && new Date(d.date_chantier).toDateString()===day.toDateString())
+  const indispoFor = (day:Date) => indispo.filter(b => b.date === day.toISOString().split('T')[0])
+
+  async function ajouterIndispo(iso:string) {
+    const next = [...indispo, { date: iso, heure_debut: bDebut, heure_fin: bFin }]
+    await save({ indisponibilites: next as any })
+    setBloquer(null)
+  }
+  async function retirerIndispo(iso:string, hd:string) {
+    const next = indispo.filter(b => !(b.date===iso && b.heure_debut===hd))
+    await save({ indisponibilites: next as any })
+  }
 
   return (
     <div className="a-fadeUp">
@@ -350,6 +364,8 @@ function Planning({ confirmes, artisan }: { confirmes:Demande[]; artisan:Artisan
       <div className="card" style={{padding:'4px 0',overflow:'hidden'}}>
         {days.map((day,di)=>{
           const slots = slotsFor(day)
+          const blocs = indispoFor(day)
+          const iso = day.toISOString().split('T')[0]
           const isTd = day.toDateString()===base.toDateString()
           return (
             <div key={di} style={{display:'flex',borderBottom:di<6?'1px solid var(--border)':'none',background:isTd?'var(--blue-dim)':'transparent'}}>
@@ -358,19 +374,36 @@ function Planning({ confirmes, artisan }: { confirmes:Demande[]; artisan:Artisan
                 <p style={{fontSize:18,fontWeight:800,color:isTd?'var(--blue)':'var(--text)',marginTop:1}}>{day.getDate()}</p>
               </div>
               <div style={{flex:1,padding:'10px 12px',display:'flex',flexDirection:'column',gap:6,minHeight:50,justifyContent:'center'}}>
-                {slots.length===0
-                  ? <p style={{fontSize:12,color:'var(--text3)'}}>Libre</p>
-                  : slots.map(s=>{
-                      const st = svc(s.type_intervention)
-                      const c = s.creneau_accepte
-                      return (
-                        <div key={s.id} style={{display:'flex',alignItems:'center',gap:8,background:`${st.color}12`,borderLeft:`3px solid ${st.color}`,borderRadius:8,padding:'6px 10px'}}>
-                          <span style={{fontSize:11,fontWeight:700,color:st.color,minWidth:38}}>{c?formatHeure(c.heure_debut):'—'}</span>
-                          <span style={{fontSize:12,fontWeight:600,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.client_nom}</span>
-                          <span style={{fontSize:11,color:'var(--text3)'}}>{s.type_intervention}</span>
-                        </div>
-                      )
-                    })}
+                {slots.map(s=>{
+                  const st = svc(s.type_intervention); const c = s.creneau_accepte
+                  return (
+                    <div key={s.id} style={{display:'flex',alignItems:'center',gap:8,background:`${st.color}12`,borderLeft:`3px solid ${st.color}`,borderRadius:8,padding:'6px 10px'}}>
+                      <span style={{fontSize:11,fontWeight:700,color:st.color,minWidth:38}}>{c?formatHeure(c.heure_debut):'—'}</span>
+                      <span style={{fontSize:12,fontWeight:600,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.client_nom}</span>
+                      <span style={{fontSize:11,color:'var(--text3)'}}>{s.type_intervention}</span>
+                    </div>
+                  )
+                })}
+                {blocs.map((b,bi)=>(
+                  <div key={bi} onClick={()=>retirerIndispo(iso,b.heure_debut)} title="Cliquez pour retirer" style={{display:'flex',alignItems:'center',gap:8,background:'var(--red-dim)',borderLeft:'3px solid var(--red)',borderRadius:8,padding:'6px 10px',cursor:'pointer'}}>
+                    <span style={{fontSize:11,fontWeight:700,color:'var(--red)',minWidth:38}}>{formatHeure(b.heure_debut)}</span>
+                    <span style={{fontSize:12,fontWeight:600,flex:1,color:'var(--red)'}}>Indisponible</span>
+                    <Trash2 size={13} color="var(--red)" />
+                  </div>
+                ))}
+                {/* Formulaire de blocage inline */}
+                {bloquer===iso ? (
+                  <div style={{display:'flex',gap:6,alignItems:'center',marginTop:2}}>
+                    <input type="time" value={bDebut} onChange={e=>setBDebut(e.target.value)} className="input-field" style={{width:78,padding:'7px 6px',fontSize:12}} />
+                    <input type="time" value={bFin} onChange={e=>setBFin(e.target.value)} className="input-field" style={{width:78,padding:'7px 6px',fontSize:12}} />
+                    <button onClick={()=>ajouterIndispo(iso)} className="btn-primary" style={{width:'auto',padding:'7px 12px',fontSize:12,height:'auto'}}>OK</button>
+                    <button onClick={()=>setBloquer(null)} className="fab" style={{width:30,height:30}}>✕</button>
+                  </div>
+                ) : (
+                  slots.length===0 && blocs.length===0
+                    ? <button onClick={()=>setBloquer(iso)} style={{fontSize:12,color:'var(--text3)',background:'none',border:'none',cursor:'pointer',textAlign:'left',padding:0}}>Libre · <span style={{color:'var(--blue)',fontWeight:600}}>bloquer</span></button>
+                    : <button onClick={()=>setBloquer(iso)} style={{fontSize:11,color:'var(--blue)',fontWeight:600,background:'none',border:'none',cursor:'pointer',textAlign:'left',padding:0}}>+ bloquer un créneau</button>
+                )}
               </div>
             </div>
           )
@@ -378,7 +411,8 @@ function Planning({ confirmes, artisan }: { confirmes:Demande[]; artisan:Artisan
       </div>
 
       <div style={{display:'flex',alignItems:'center',gap:14,marginTop:12,justifyContent:'center'}}>
-        <span style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text3)'}}><span style={{width:10,height:10,borderRadius:3,background:'var(--blue)'}}/>Occupé</span>
+        <span style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text3)'}}><span style={{width:10,height:10,borderRadius:3,background:'var(--blue)'}}/>Chantier</span>
+        <span style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text3)'}}><span style={{width:10,height:10,borderRadius:3,background:'var(--red)'}}/>Indisponible</span>
         <span style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text3)'}}><span style={{width:10,height:10,borderRadius:3,background:'var(--border2)'}}/>Libre</span>
       </div>
     </div>
@@ -387,6 +421,8 @@ function Planning({ confirmes, artisan }: { confirmes:Demande[]; artisan:Artisan
 
 /* ───────── HISTORIQUE ───────── */
 function Historique({ payes, encaisse }: { payes:Demande[]; encaisse:number }) {
+  // Plus récent en haut (par date de chantier décroissante)
+  const liste = [...payes].sort((a,b) => new Date(b.date_chantier||b.created_at).getTime() - new Date(a.date_chantier||a.created_at).getTime())
   return (
     <div className="a-fadeUp">
       <div className="hero-card a-scaleIn" style={{padding:'20px 22px',marginBottom:16}}>
@@ -398,10 +434,10 @@ function Historique({ payes, encaisse }: { payes:Demande[]; encaisse:number }) {
       </div>
 
       <SectionTitle title="Chantiers réalisés" />
-      {payes.length===0
+      {liste.length===0
         ? <Empty Icon={Clock} title="Aucun chantier" sub="Vos chantiers validés apparaîtront ici." />
         : <div style={{display:'flex',flexDirection:'column',gap:10}}>
-            {payes.map((d,i)=>{
+            {liste.map((d,i)=>{
               const s = svc(d.type_intervention); const c = d.creneau_accepte
               return (
                 <div key={d.id} className={`card a-fadeUp d${Math.min(i+1,6)}`} style={{padding:14}}>
@@ -871,6 +907,7 @@ function ModalCreneaux({ d, artisan, confirmes, onClose, onProposer }: { d:Deman
     horaires: artisan.horaires,
     typesChantier: artisan.types_chantier,
     preferences: artisan.preferences_creneaux,
+    indisponibilites: artisan.indisponibilites,
     nb: 3,
   }))[0]
 
@@ -895,13 +932,36 @@ function ModalCreneaux({ d, artisan, confirmes, onClose, onProposer }: { d:Deman
 
         {/* Bandeau suggestion intelligente */}
         {suggestion.length > 0 && (
-          <div style={{display:'flex',alignItems:'center',gap:10,background:'var(--blue-dim)',border:'1px solid var(--blue-mid)',borderRadius:12,padding:'10px 12px',marginBottom:16}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,background:'var(--blue-dim)',border:'1px solid var(--blue-mid)',borderRadius:12,padding:'10px 12px',marginBottom:14}}>
             <div className="icon-tile" style={{width:30,height:30,borderRadius:9,background:'var(--blue)',boxShadow:'none'}}><CalendarDays size={15} color="#fff"/></div>
             <p style={{fontSize:12,color:'var(--text2)',lineHeight:1.4,flex:1}}>
               Créneaux proposés selon votre planning et votre préférence <b style={{color:'var(--blue)'}}>{prefLabel[pref]}</b> pour ce type de chantier.
             </p>
           </div>
         )}
+
+        {/* Aperçu calendrier — votre semaine (cliquez un jour pour le choisir) */}
+        <p style={{fontSize:11,fontWeight:700,color:'var(--label)',letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:8}}>Votre semaine</p>
+        <div style={{display:'flex',gap:6,overflowX:'auto',marginBottom:16,paddingBottom:4}}>
+          {Array.from({length:7},(_,i)=>{
+            const x=new Date(); x.setHours(0,0,0,0); x.setDate(x.getDate()+i)
+            const ds=x.toDateString(); const iso=x.toISOString().split('T')[0]
+            const jour=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'][x.getDay()]
+            const ferme = !(artisan.horaires as any)?.[jour]?.actif
+            const nbCh=confirmes.filter(c=>c.creneau_accepte && c.date_chantier && new Date(c.date_chantier).toDateString()===ds).length
+            const nbInd=((artisan.indisponibilites as any[])||[]).filter(b=>b.date===iso).length
+            const occupe=nbCh+nbInd
+            const libre=!ferme && occupe===0
+            return (
+              <button key={i} onClick={()=>setCreneaux(p=>{ const idx=p.findIndex(c=>!c.date); const t=idx>=0?idx:0; return p.map((c,j)=>j===t?{...c,date:iso}:c) })}
+                style={{flexShrink:0,width:52,padding:'8px 0',borderRadius:11,border:`1px solid ${libre?'#a7f3d0':occupe?'#fecaca':'var(--border)'}`,background:ferme?'var(--surface2)':libre?'var(--green-dim)':'var(--red-dim)',cursor:'pointer',textAlign:'center'}}>
+                <div style={{fontSize:10,fontWeight:700,color:'var(--text3)',textTransform:'uppercase'}}>{['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][x.getDay()]}</div>
+                <div style={{fontSize:17,fontWeight:800,color:'var(--text)'}}>{x.getDate()}</div>
+                <div style={{fontSize:9,fontWeight:600,color:ferme?'var(--text3)':libre?'var(--green)':'var(--red)'}}>{ferme?'Fermé':libre?'Libre':`${occupe} pris`}</div>
+              </button>
+            )
+          })}
+        </div>
 
         <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:14}}>
           {creneaux.map((c,i)=>(

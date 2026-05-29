@@ -31,6 +31,7 @@ export type Artisan = {
   rgpd: string | null
   onboarding_complet: boolean
   preferences_creneaux: PreferencesCreneaux
+  indisponibilites: Creneau[]
 }
 
 // Préférence de moment de la journée par envergure de chantier

@@ -55,9 +55,10 @@ export function suggererCreneaux(opts: {
   horaires: any             // artisan.horaires
   typesChantier: any[]      // pour récupérer la durée
   preferences: any          // artisan.preferences_creneaux
+  indisponibilites?: any[]  // créneaux bloqués {date, heure_debut, heure_fin}
   nb?: number
 }): Creneau[] {
-  const { envergure, typeIntervention, confirmes, horaires, typesChantier, preferences, nb = 3 } = opts
+  const { envergure, typeIntervention, confirmes, horaires, typesChantier, preferences, indisponibilites = [], nb = 3 } = opts
   const type = typesChantier?.find(t => t.type === typeIntervention)
   const dureeMin = Math.max((type?.duree || 2) * 60, 60)
   const pref = (preferences?.[envergure] as string) || 'flexible' // matin | apres-midi | flexible
@@ -70,15 +71,20 @@ export function suggererCreneaux(opts: {
     const h = horaires?.[jour]
     if (h?.actif) {
       const ouv = hToMin(h.debut), ferm = hToMin(h.fin)
-      // créneaux déjà occupés ce jour
-      const occupes = confirmes
+      const jourStr = cursor.toISOString().split('T')[0]
+      // créneaux déjà occupés ce jour (chantiers confirmés)
+      const occupesChantiers = confirmes
         .filter(c => c.creneau_accepte && new Date(c.date_chantier).toDateString() === cursor.toDateString())
         .map(c => {
           const ct = typesChantier?.find(t => t.type === c.type_intervention)
           const deb = hToMin(c.creneau_accepte.heure_debut)
-          return [deb, deb + (ct?.duree || 2) * 60]
+          return [deb, deb + (ct?.duree || 2) * 60] as [number, number]
         })
-        .sort((a,b) => a[0]-b[0])
+      // + indisponibilités bloquées ce jour
+      const occupesIndispo = (indisponibilites || [])
+        .filter((b: any) => b.date === jourStr)
+        .map((b: any) => [hToMin(b.heure_debut), hToMin(b.heure_fin)] as [number, number])
+      const occupes = [...occupesChantiers, ...occupesIndispo].sort((a,b) => a[0]-b[0])
 
       // fenêtre de recherche selon préférence
       let start = ouv, limit = ferm

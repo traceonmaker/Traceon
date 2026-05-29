@@ -60,7 +60,7 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
 
 ::-webkit-scrollbar { width: 0; height: 0; }
 
-@keyframes fadeUp  { from { opacity:0; transform:translateY(18px) } to { opacity:1; transform:none } }
+@keyframes fadeUp  { from { opacity:0; transform:translateY(26px) scale(.985) } to { opacity:1; transform:none } }
 @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
 @keyframes slideUp { from { opacity:0; transform:translateY(110%) } to { opacity:1; transform:none } }
 @keyframes scaleIn { from { opacity:0; transform:scale(.94) } to { opacity:1; transform:scale(1) } }
@@ -116,6 +116,17 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
     0 28px 60px rgba(10,50,184,0.10);
 }
 .card-interactive:active { transform: translateY(-1px) scale(.995); }
+
+/* Carte client — bordure plus contrastée + accent coloré à gauche */
+.card-client {
+  border: 1.5px solid #c3d2e8;
+  border-left-width: 4px;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,1) inset,
+    0 2px 8px rgba(15,23,42,0.07),
+    0 12px 28px rgba(15,23,42,0.10),
+    0 24px 52px rgba(10,50,184,0.07);
+}
 /* contour dégradé fin qui capte la lumière */
 .card::after {
   content: '';
@@ -172,6 +183,44 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
   background: linear-gradient(180deg, #10b981, #059669);
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* Montant "addictif" — pastille verte façon cash */
+.money-pill {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800; letter-spacing: -0.03em; font-size: 16px;
+  background: linear-gradient(135deg, #eafff5 0%, #d2f8e4 100%);
+  border: 1px solid #7fe0ac;
+  color: #047a4e;
+  padding: 5px 12px; border-radius: 12px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset, 0 2px 10px rgba(5,150,105,0.22);
+}
+
+/* Bouton "Encaissé" — doré, addictif */
+.btn-cash {
+  background: linear-gradient(180deg, #fcc63d 0%, #f59e0b 52%, #d97706 100%);
+  color: #fff; border: none; border-radius: 14px;
+  font-weight: 800; font-size: 14px; letter-spacing: -0.01em;
+  cursor: pointer; transition: all .2s cubic-bezier(.22,1,.36,1);
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.5) inset,
+    0 -2px 6px rgba(146,64,14,0.25) inset,
+    0 4px 12px rgba(245,158,11,0.4),
+    0 8px 22px rgba(245,158,11,0.28);
+  text-shadow: 0 1px 2px rgba(146,64,14,0.3);
+}
+.btn-cash:hover  { transform: translateY(-2px); }
+.btn-cash:active { transform: translateY(0) scale(.99); }
+.btn-cash:disabled { opacity: .6; }
+
+/* Badge date — bien visible sur les cartes */
+.date-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--blue-dim); border: 1px solid var(--blue-mid);
+  color: var(--blue-600); font-weight: 700; font-size: 12.5px;
+  padding: 5px 11px; border-radius: 10px; letter-spacing: -0.01em;
 }
 
 .btn-success {

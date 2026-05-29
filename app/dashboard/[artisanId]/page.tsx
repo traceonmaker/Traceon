@@ -188,8 +188,8 @@ function Accueil({ today, nouvelles, encaisse, potentiel, confirmes, valider, va
   const animEnc = useCountUp(encaisse)
   return (
     <div className="a-fadeUp">
-      {/* Hero */}
-      <div className="hero-card a-scaleIn" style={{padding:'22px 22px 20px',marginBottom:16}}>
+      {/* Hero — reste fixe au défilement */}
+      <div className="hero-card a-scaleIn" style={{padding:'22px 22px 20px',marginBottom:16,position:'sticky',top:8,zIndex:5}}>
         <div className="hero-shine" />
         <div style={{position:'relative',zIndex:1}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
@@ -720,7 +720,7 @@ function CardDemande({ d, i, onCreneaux }: { d:Demande; i:number; onCreneaux:()=
   const isNew = d.statut === 'nouvelle'
   const s = svc(d.type_intervention)
   return (
-    <div className={`card card-interactive a-fadeUp d${Math.min(i+1,6)}`} style={{padding:14,border:`1px solid ${isNew?'var(--blue-mid)':'var(--border)'}`,boxShadow:isNew?'var(--shadow)':'var(--shadow-sm)'}}>
+    <div className={`card card-client card-interactive a-fadeUp d${Math.min(i+1,6)}`} style={{padding:14,borderLeftColor:s.color}}>
       <div style={{display:'flex',alignItems:'flex-start',gap:12,marginBottom:12}}>
         <div className="icon-tile" style={{width:44,height:44,borderRadius:13,background:`${s.color}14`}}><s.Icon size={20} color={s.color} /></div>
         <div style={{flex:1,minWidth:0}}>
@@ -731,7 +731,7 @@ function CardDemande({ d, i, onCreneaux }: { d:Demande; i:number; onCreneaux:()=
           </div>
           <p style={{fontSize:12,color:'var(--text3)',marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{d.type_intervention} · {d.client_adresse}</p>
         </div>
-        {d.prix_estime && <span className="amount-green" style={{fontSize:17,flexShrink:0}}>{formatPrix(d.prix_estime)}</span>}
+        {d.prix_estime && <span className="money-pill" style={{flexShrink:0}}>{formatPrix(d.prix_estime)}</span>}
       </div>
       {d.client_description && <p style={{fontSize:12,color:'var(--text2)',background:'var(--surface2)',borderRadius:10,padding:'8px 11px',marginBottom:12}}>{d.client_description}</p>}
       <div style={{display:'flex',gap:8}}>
@@ -746,26 +746,28 @@ function CardChantier({ d, onValider, validating, removing=false, highlight=fals
   const c = d.creneau_accepte
   const s = svc(d.type_intervention)
   return (
-    <div className={`card card-interactive ${removing?'card-validating':''}`} style={{padding:14,border:`1px solid ${highlight?'var(--blue-mid)':'var(--border)'}`,boxShadow:highlight?'var(--shadow)':'var(--shadow-sm)'}}>
+    <div className={`card card-client card-interactive ${removing?'card-validating':''}`} style={{padding:14,borderLeftColor:s.color}}>
       <div style={{display:'flex',alignItems:'flex-start',gap:12,marginBottom:10}}>
         <div className="icon-tile" style={{width:44,height:44,borderRadius:13,background:`${s.color}14`}}><s.Icon size={20} color={s.color} /></div>
         <div style={{flex:1}}>
           <p style={{fontSize:15,fontWeight:700}}>{d.client_nom}</p>
           <p style={{fontSize:12,color:'var(--text3)',marginTop:1}}>{d.type_intervention}</p>
         </div>
-        <span className="amount-green" style={{fontSize:17}}>{formatPrix(d.prix_estime||0)}</span>
+        <span className="money-pill">{formatPrix(d.prix_estime||0)}</span>
       </div>
-      <div style={{display:'flex',flexWrap:'wrap',gap:'4px 14px',marginBottom:12}}>
-        {c && <Meta Icon={Clock} txt={`${formatDate(c.date)} · ${formatHeure(c.heure_debut)}`} />}
+      {/* Date bien visible */}
+      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:12}}>
+        {c && <span className="date-badge"><CalendarDays size={13}/>{formatDate(c.date)} · {formatHeure(c.heure_debut)}</span>}
         <Meta Icon={MapPin} txt={d.client_adresse} />
       </div>
-      <div style={{display:'flex',gap:8}}>
-        <a href={`tel:${d.client_telephone}`} className="fab" style={{flex:1,height:44}}><Phone size={17} /></a>
-        <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.client_adresse)}&travelmode=driving`} target="_blank" rel="noreferrer" className="fab" style={{flex:1,height:44}}><MapPin size={17} /></a>
-        <button onClick={onValider} disabled={validating} className="btn-success" style={{flex:2,height:44}}>
-          {validating ? <span className="spinner spinner-w" /> : 'Validé'}
-        </button>
+      {/* Appel + Itinéraire équilibrés, puis Encaissé en dessous */}
+      <div style={{display:'flex',gap:8,marginBottom:8}}>
+        <a href={`tel:${d.client_telephone}`} className="fab" style={{flex:1,width:'auto',height:46,gap:7,fontSize:13,fontWeight:600}}><Phone size={17} />Appeler</a>
+        <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.client_adresse)}&travelmode=driving`} target="_blank" rel="noreferrer" className="fab" style={{flex:1,width:'auto',height:46,gap:7,fontSize:13,fontWeight:600}}><MapPin size={17} />Itinéraire</a>
       </div>
+      <button onClick={onValider} disabled={validating} className="btn-cash" style={{width:'100%',height:48}}>
+        {validating ? <span className="spinner spinner-w" /> : <><Euro size={17}/>Encaissé</>}
+      </button>
     </div>
   )
 }

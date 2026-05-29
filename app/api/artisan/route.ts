@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     cgv: body.cgv || null,
     rgpd: body.rgpd || null,
     onboarding_complet: true,
-    abonnement_actif: true,
+    abonnement_actif: false,
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

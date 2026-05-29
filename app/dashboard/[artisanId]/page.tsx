@@ -78,7 +78,17 @@ export default function Dashboard() {
 
   const { artisanId } = useParams<{ artisanId:string }>()
   useEffect(() => {
-    fetch(`/api/artisan/${artisanId}`).then(r=>r.json()).then(d=>{ if(d?.id) setArtisan(d) }).catch(()=>{})
+    async function init() {
+      // Au retour du paiement Stripe, on réconcilie l'abonnement avant de charger
+      if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('abonnement') === 'ok') {
+        await fetch('/api/stripe/sync', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ artisan_id: artisanId }) }).catch(()=>{})
+        window.history.replaceState({}, '', `/dashboard/${artisanId}`)
+      }
+      const r = await fetch(`/api/artisan/${artisanId}`)
+      const d = await r.json()
+      if (d?.id) setArtisan(d)
+    }
+    init()
   }, [artisanId])
 
   const load = useCallback(async () => {
@@ -126,6 +136,9 @@ export default function Dashboard() {
       <a href="/onboarding" className="btn-primary" style={{width:'auto',padding:'12px 24px',textDecoration:'none'}}>Créer mon compte</a>
     </div>
   )
+
+  // Paywall : accès bloqué tant que l'abonnement n'est pas actif
+  if (!artisan.abonnement_actif) return <Paywall artisan={artisan} />
 
   return (
     <div style={{minHeight:'100vh',background:'var(--bg-grad)',position:'relative'}}>
@@ -180,6 +193,55 @@ export default function Dashboard() {
 
       {modal && <ModalCreneaux d={modal} artisan={artisan} confirmes={confirmes} onClose={()=>setModal(null)} onProposer={proposer} />}
       <InstallPrompt />
+    </div>
+  )
+}
+
+/* ───────── PAYWALL ───────── */
+function Paywall({ artisan }: { artisan:Artisan }) {
+  const [loading, setLoading] = useState(false)
+  async function abonner() {
+    setLoading(true)
+    const r = await fetch('/api/stripe/checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ artisan_id: artisan.id }) })
+    const d = await r.json()
+    if (d.url) window.location.href = d.url
+    else setLoading(false)
+  }
+  const avantages = [
+    'Demandes clients en temps réel',
+    'Planning & créneaux intelligents',
+    'Devis PDF automatiques',
+    'Suivi client par SMS',
+    'Statistiques & encaissements',
+  ]
+  return (
+    <div style={{minHeight:'100vh',background:'var(--bg-grad)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+      <div className="card a-scaleIn" style={{maxWidth:400,width:'100%',padding:'28px 24px',textAlign:'center'}}>
+        <div style={{width:56,height:56,borderRadius:16,background:'linear-gradient(135deg,#2f6bff,#0e47d2)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',boxShadow:'var(--shadow-blue)'}}>
+          <Briefcase size={26} color="#fff" />
+        </div>
+        <h1 style={{fontSize:22,fontWeight:800,letterSpacing:'-0.03em',marginBottom:6}}>Activez {artisan.nom_entreprise || 'votre espace'}</h1>
+        <p style={{fontSize:14,color:'var(--text2)',marginBottom:20,lineHeight:1.5}}>Tout votre business au même endroit. 7 jours d'essai gratuit, sans engagement.</p>
+
+        <div style={{display:'flex',alignItems:'baseline',justifyContent:'center',gap:4,marginBottom:20}}>
+          <span style={{fontSize:38,fontWeight:900,letterSpacing:'-0.04em'}}>250 €</span>
+          <span style={{fontSize:14,color:'var(--text3)',fontWeight:600}}>/ mois</span>
+        </div>
+
+        <div style={{textAlign:'left',display:'flex',flexDirection:'column',gap:9,marginBottom:24}}>
+          {avantages.map(a=>(
+            <div key={a} style={{display:'flex',alignItems:'center',gap:10,fontSize:13.5,fontWeight:500}}>
+              <span style={{width:20,height:20,borderRadius:'50%',background:'var(--green-dim)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Check size={13} color="var(--green)"/></span>
+              {a}
+            </div>
+          ))}
+        </div>
+
+        <button onClick={abonner} disabled={loading} className="btn-primary" style={{height:50,fontSize:15}}>
+          {loading ? <span className="spinner spinner-w" /> : 'Démarrer mon essai gratuit'}
+        </button>
+        <p style={{fontSize:11,color:'var(--text3)',marginTop:12}}>7 jours gratuits puis 250 €/mois · Annulable à tout moment</p>
+      </div>
     </div>
   )
 }

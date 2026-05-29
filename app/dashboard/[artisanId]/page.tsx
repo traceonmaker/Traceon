@@ -128,8 +128,9 @@ export default function Dashboard() {
   )
 
   return (
-    <div style={{minHeight:'100vh',background:'var(--bg-grad)'}}>
-      <div style={{maxWidth:480,margin:'0 auto',padding:'20px 16px 120px'}}>
+    <div style={{minHeight:'100vh',background:'var(--bg-grad)',position:'relative'}}>
+      <div className="app-glow" />
+      <div style={{maxWidth:480,margin:'0 auto',padding:'20px 16px 120px',position:'relative',zIndex:1}}>
 
         {/* Top bar */}
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:18}}>
@@ -203,14 +204,14 @@ function Accueil({ today, nouvelles, encaisse, potentiel, confirmes, valider, va
             </div>
             <Sparkline data={sparkData(confirmes, encaisse)} />
           </div>
-          <div style={{display:'flex',gap:10,marginTop:18}}>
-            <div className="hero-subcard" style={{flex:1,padding:'12px 14px',border:'1px solid rgba(196,140,255,0.55)',background:'rgba(168,85,247,0.18)',boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 0 16px rgba(168,85,247,0.35)'}}>
-              <p style={{fontSize:11,fontWeight:700,color:'#e9d5ff'}}>Potentiel</p>
-              <p className="amount" style={{fontSize:19,marginTop:3,color:'#fff'}}>{formatPrix(potentiel)}</p>
+          <div style={{display:'flex',gap:14,marginTop:20}}>
+            <div className="hero-stat" style={{flex:1,padding:'13px 15px',border:'1px solid rgba(196,140,255,0.7)',background:'linear-gradient(150deg, rgba(168,85,247,0.55), rgba(124,45,214,0.42))',boxShadow:'0 1px 0 rgba(255,255,255,0.3) inset, 0 6px 18px rgba(124,45,214,0.4)'}}>
+              <p style={{fontSize:11,fontWeight:700,color:'#f3e3ff'}}>Potentiel</p>
+              <p className="amount" style={{fontSize:20,marginTop:3,color:'#fff'}}>{formatPrix(potentiel)}</p>
             </div>
-            <div className="hero-subcard" style={{flex:1,padding:'12px 14px',border:'1px solid rgba(110,231,183,0.6)',background:'rgba(16,185,129,0.2)',boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 0 16px rgba(16,185,129,0.35)'}}>
-              <p style={{fontSize:11,fontWeight:700,color:'#bbf7d0'}}>Aujourd'hui</p>
-              <p style={{fontSize:19,fontWeight:800,marginTop:3,letterSpacing:'-0.01em',color:'#fff'}}>{today.length} chantier{today.length>1?'s':''}</p>
+            <div className="hero-stat" style={{flex:1,padding:'13px 15px',border:'1px solid rgba(110,231,183,0.75)',background:'linear-gradient(150deg, rgba(16,185,129,0.58), rgba(4,122,78,0.45))',boxShadow:'0 1px 0 rgba(255,255,255,0.3) inset, 0 6px 18px rgba(5,150,105,0.4)'}}>
+              <p style={{fontSize:11,fontWeight:700,color:'#c8f9df'}}>Aujourd'hui</p>
+              <p style={{fontSize:20,fontWeight:800,marginTop:3,letterSpacing:'-0.01em',color:'#fff'}}>{today.length} chantier{today.length>1?'s':''}</p>
             </div>
           </div>
         </div>
@@ -394,10 +395,10 @@ function Stats({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demand
 
       {/* KPIs — cartes dark premium avec glow */}
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}}>
-        <KPI label="Chiffre d'affaires" value={formatPrix(encaisse)} Icon={Euro}      glow="#0a6bff" trend="+8%" up />
-        <KPI label="Chantiers"          value={`${payes.length}`}    Icon={Briefcase} glow="#7c3aed" trend="+12%" up />
-        <KPI label="Ticket moyen"       value={formatPrix(ticket)}   Icon={Receipt}   glow="#10b981" trend="+5%" up />
-        <KPI label="Conversion"         value={`${conv}%`}           Icon={Percent}   glow="#f59e0b" trend={`${conv}%`} up />
+        <KPI label="Chiffre d'affaires" value={formatPrix(encaisse)} Icon={Euro}      glow="#2f6bff" />
+        <KPI label="Chantiers"          value={`${payes.length}`}    Icon={Briefcase} glow="#a855f7" />
+        <KPI label="Ticket moyen"       value={formatPrix(ticket)}   Icon={Receipt}   glow="#10b981" />
+        <KPI label="Taux de conversion" value={`${conv}%`}           Icon={Percent}   glow="#f59e0b" />
       </div>
 
       {/* Graphique CA */}
@@ -444,24 +445,22 @@ function Stats({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demand
     </div>
   )
 }
-function KPI({ label, value, Icon, glow, trend, up }: { label:string; value:string; Icon:any; glow:string; trend:string; up:boolean }) {
+function KPI({ label, value, Icon, glow }: { label:string; value:string; Icon:any; glow:string }) {
   return (
     <div className="a-count" style={{
       padding:'15px 16px', borderRadius:18, position:'relative', overflow:'hidden',
-      background:'linear-gradient(150deg, #15171f 0%, #0c0e14 100%)',
-      border:'1px solid rgba(255,255,255,0.08)',
-      boxShadow:`0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 24px rgba(0,0,0,0.35)`,
+      background:'linear-gradient(150deg, #1b1e2b 0%, #0a0c14 100%)',
+      border:`1px solid ${glow}40`,
+      boxShadow:`0 1px 0 rgba(255,255,255,0.10) inset, 0 0 0 1px ${glow}1a, 0 10px 28px rgba(0,0,0,0.45), 0 0 24px ${glow}1f`,
     }}>
       {/* glow coloré en coin */}
       <div style={{position:'absolute',top:-30,right:-30,width:96,height:96,borderRadius:'50%',background:`radial-gradient(circle, ${glow}55 0%, transparent 70%)`,pointerEvents:'none'}} />
-      <div style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-        <div className="icon-tile" style={{width:32,height:32,borderRadius:9,background:`${glow}26`,border:`1px solid ${glow}40`,boxShadow:'none'}}><Icon size={16} color={glow} /></div>
-        <span style={{display:'inline-flex',alignItems:'center',gap:2,fontSize:10,fontWeight:700,color:up?'#34d399':'#f87171',background:up?'rgba(52,211,153,0.12)':'rgba(248,113,113,0.12)',padding:'2px 6px',borderRadius:6}}>
-          <TrendingUp size={10} />{trend}
-        </span>
+      {/* Titre en premier, plus gros */}
+      <div style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:12}}>
+        <p style={{fontSize:14,fontWeight:700,color:'rgba(255,255,255,0.92)',letterSpacing:'-0.02em'}}>{label}</p>
+        <div className="icon-tile" style={{width:30,height:30,borderRadius:9,background:`${glow}26`,border:`1px solid ${glow}40`,boxShadow:'none',flexShrink:0}}><Icon size={15} color={glow} /></div>
       </div>
-      <p style={{fontSize:11,fontWeight:600,color:'rgba(255,255,255,0.5)',marginBottom:4,position:'relative'}}>{label}</p>
-      <p className="amount" style={{fontSize:22,color:'#fff',position:'relative'}}>{value}</p>
+      <p className="amount" style={{fontSize:24,color:'#fff',position:'relative'}}>{value}</p>
     </div>
   )
 }
@@ -747,15 +746,17 @@ function CardChantier({ d, onValider, validating, removing=false, highlight=fals
   const s = svc(d.type_intervention)
   return (
     <div className={`card card-client card-interactive ${removing?'card-validating':''}`} style={{padding:14}}>
-      {/* Date en premier */}
-      {c && <div style={{marginBottom:12}}><span className="date-badge"><CalendarDays size={13}/>{formatDate(c.date)} · {formatHeure(c.heure_debut)}</span></div>}
+      {/* Date à gauche, montant en haut à droite (gros) */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:12}}>
+        {c ? <span className="date-badge"><CalendarDays size={13}/>{formatDate(c.date)} · {formatHeure(c.heure_debut)}</span> : <span/>}
+        <span className="amount-green" style={{fontSize:22}}>{formatPrix(d.prix_estime||0)}</span>
+      </div>
       <div style={{display:'flex',alignItems:'flex-start',gap:12,marginBottom:10}}>
         <div className="icon-tile" style={{width:44,height:44,borderRadius:13,background:`${s.color}14`}}><s.Icon size={20} color={s.color} /></div>
         <div style={{flex:1}}>
           <p style={{fontSize:15,fontWeight:700}}>{d.client_nom}</p>
           <p style={{fontSize:12,color:'var(--text3)',marginTop:1}}>{d.type_intervention}</p>
         </div>
-        <span className="amount-green" style={{fontSize:17}}>{formatPrix(d.prix_estime||0)}</span>
       </div>
       <div style={{marginBottom:12}}><Meta Icon={MapPin} txt={d.client_adresse} /></div>
       {/* Appel + Itinéraire équilibrés, puis Validé en dessous */}

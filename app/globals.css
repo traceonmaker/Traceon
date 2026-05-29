@@ -3,8 +3,8 @@
 :root {
   --bg:        #ffffff;
   --bg-grad:
-    radial-gradient(120% 58% at 50% -12%, #1a5cf0 0%, #3a7bff 24%, rgba(120,170,255,0.32) 48%, rgba(255,255,255,0) 68%),
-    linear-gradient(180deg, #ecf2ff 0%, #f6f9ff 32%, #ffffff 72%);
+    radial-gradient(120% 62% at 50% -14%, #07205f 0%, #0e3bb0 16%, #2f6bff 34%, rgba(130,175,255,0.34) 54%, rgba(255,255,255,0) 72%),
+    linear-gradient(180deg, #e7eefc 0%, #f4f8ff 34%, #ffffff 74%);
   --surface:   #ffffff;
   --surface2:  #f6f9ff;
   --border:    #e4ebf5;
@@ -68,6 +68,29 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
 @keyframes countUp { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:none } }
 @keyframes growBar { from { transform: scaleY(0) } to { transform: scaleY(1) } }
 @keyframes pulseDot { 0%,100% { opacity:1 } 50% { opacity:.35 } }
+@keyframes glowDrift {
+  0%   { transform: translate3d(0,0,0) scale(1);     opacity:.85 }
+  100% { transform: translate3d(-14px,16px,0) scale(1.12); opacity:1 }
+}
+
+/* Lueur d'ambiance animée en fond */
+.app-glow {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(46% 30% at 18% 4%, rgba(47,107,255,0.28) 0%, transparent 62%),
+    radial-gradient(42% 28% at 88% 8%, rgba(139,62,232,0.20) 0%, transparent 60%),
+    radial-gradient(50% 30% at 60% 0%, rgba(10,46,146,0.22) 0%, transparent 65%);
+  animation: glowDrift 14s ease-in-out infinite alternate;
+  filter: blur(8px);
+}
+
+/* sous-cartes stats du hero — détachées + animées */
+.hero-stat {
+  border-radius: 16px;
+  transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease;
+  cursor: default;
+}
+.hero-stat:hover { transform: translateY(-4px); }
 @keyframes cardValidate {
   0%   { transform: scale(1);     opacity: 1 }
   35%  { transform: scale(1.03);  opacity: 1; box-shadow: 0 0 0 3px rgba(16,185,129,0.4), 0 12px 28px rgba(16,185,129,0.3) }

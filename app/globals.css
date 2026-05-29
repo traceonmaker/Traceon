@@ -117,16 +117,33 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
 }
 .card-interactive:active { transform: translateY(-1px) scale(.995); }
 
-/* Carte client — bordure plus contrastée + accent coloré à gauche */
+/* Carte client — bordure plus contrastée */
 .card-client {
   border: 1.5px solid #c3d2e8;
-  border-left-width: 4px;
   box-shadow:
     0 1px 0 rgba(255,255,255,1) inset,
     0 2px 8px rgba(15,23,42,0.07),
     0 12px 28px rgba(15,23,42,0.10),
     0 24px 52px rgba(10,50,184,0.07);
 }
+
+/* Bouton "Validé" — violet */
+.btn-violet {
+  background: linear-gradient(180deg, #a855f7 0%, #8b3ee8 52%, #7c2fd6 100%);
+  color: #fff; border: none; border-radius: 14px;
+  font-weight: 800; font-size: 14px; letter-spacing: -0.01em;
+  cursor: pointer; transition: all .2s cubic-bezier(.22,1,.36,1);
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.4) inset,
+    0 -2px 6px rgba(91,33,182,0.25) inset,
+    0 4px 12px rgba(139,62,232,0.4),
+    0 8px 22px rgba(139,62,232,0.26);
+  text-shadow: 0 1px 2px rgba(91,33,182,0.3);
+}
+.btn-violet:hover  { transform: translateY(-2px); }
+.btn-violet:active { transform: translateY(0) scale(.99); }
+.btn-violet:disabled { opacity: .6; }
 /* contour dégradé fin qui capte la lumière */
 .card::after {
   content: '';

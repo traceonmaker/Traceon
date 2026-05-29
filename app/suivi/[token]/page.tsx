@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { formatDate, formatHeure } from '@/lib/utils'
 import type { Demande, Creneau } from '@/lib/supabase'
-import { Inbox, FileText, CalendarDays, CheckCircle2, Wrench, PartyPopper, Phone, MapPin, Check } from 'lucide-react'
+import { Inbox, FileText, CalendarDays, CheckCircle2, Wrench, PartyPopper, Phone, MapPin, Check, Download } from 'lucide-react'
 
 const STEPS = [
   { key:'nouvelle',        label:'Demande reçue',        Icon:Inbox,        desc:'Votre demande a bien été transmise' },
@@ -105,6 +105,13 @@ export default function Suivi() {
             <p style={{fontSize:13,color:'var(--text2)',marginTop:2}}>{formatHeure(data.creneau_accepte.heure_debut)} – {formatHeure(data.creneau_accepte.heure_fin)}</p>
             <p style={{fontSize:12,color:'var(--text3)',marginTop:6,display:'flex',alignItems:'center',gap:4}}><MapPin size={13}/>{data.client_adresse}</p>
           </div>
+        )}
+
+        {/* Devis téléchargeable dès que le créneau est confirmé */}
+        {(data.statut==='confirme'||data.statut==='en_cours'||data.statut==='paye') && (
+          <a href={`/api/devis/${token}`} target="_blank" rel="noreferrer" className="btn-primary a-fadeUp" style={{textDecoration:'none',marginBottom:10}}>
+            <Download size={16}/>Télécharger mon devis
+          </a>
         )}
 
         {data.artisans?.telephone && (

@@ -113,8 +113,8 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
 
 .card {
   position: relative;
-  background: #ffffff;
-  border: 1px solid #d3deec;
+  background: var(--surface);
+  border: 1px solid var(--border2);
   border-radius: 20px;
   box-shadow:
     0 1px 0 rgba(255,255,255,1) inset,
@@ -405,7 +405,7 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
 }
 
 .fab {
-  width: 42px; height: 42px; border-radius: 12px;
+  width: 44px; height: 44px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   background: linear-gradient(180deg, #ffffff, #f5f8fd);
   border: 1px solid var(--border);
@@ -415,3 +415,70 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
 }
 .fab:hover { background: var(--blue-dim); color: var(--blue); border-color: var(--blue-mid); transform: translateY(-1px); }
 .fab:active { transform: scale(.96); }
+
+/* ───────── Skeletons (perception de vitesse) ───────── */
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+.skel {
+  background: linear-gradient(90deg, #eef2f7 25%, #e3e9f1 37%, #eef2f7 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+/* ───────── Toasts (confirmations discrètes) ───────── */
+.toast-wrap {
+  position: fixed; left: 0; right: 0; bottom: 92px; z-index: 60;
+  display: flex; justify-content: center; pointer-events: none; padding: 0 16px;
+}
+.toast {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 14px;
+  background: #0c1424; color: #fff;
+  padding: 13px 18px; border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+  font-size: 14px; font-weight: 600; letter-spacing: -0.01em;
+  max-width: 440px; width: 100%;
+  animation: slideUp .32s cubic-bezier(.22,1,.36,1) both;
+}
+.toast .t-ic { display:flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:#0fa56b; flex-shrink:0; }
+.toast .t-msg { flex:1; }
+.toast button { background:none; border:none; color:#5eacff; font-weight:800; font-size:14px; cursor:pointer; padding:4px 2px; }
+
+/* ───────── Dark mode (auto, selon préférence système) ───────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:        #0b0d12;
+    --bg-grad:   linear-gradient(180deg, #0d1016 0%, #0b0d12 60%, #0b0d12 100%);
+    --surface:   #15181f;
+    --surface2:  #1b1f28;
+    --border:    #262b35;
+    --border2:   #2f3540;
+    --text:      #f2f5f9;
+    --text2:     #aeb7c4;
+    --text3:     #7e8896;
+    --label:     #8a94a3;
+    --blue-dim:  #16243f;
+    --blue-mid:  #25406e;
+    --green-dim: #102420;
+    --red-dim:   #2a1517;
+    --amber-dim: #2a2110;
+  }
+  body { background: var(--bg); }
+  .card {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.45), 0 14px 34px rgba(0,0,0,0.4);
+  }
+  .card::after { background: linear-gradient(160deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 45%); }
+  .card-client { border-color: var(--border2); }
+  .bottom-nav {
+    background: rgba(20,23,30,0.82);
+    border-color: rgba(255,255,255,0.08);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 6px 24px rgba(0,0,0,0.5);
+  }
+  .btn-ghost { background: var(--surface2); color: var(--text2); border-color: var(--border2); box-shadow: none; }
+  .btn-ghost:hover { background: var(--border); }
+  .input-field { background: var(--surface2); border-color: var(--border); color: var(--text); }
+  .input-field:focus { background: var(--surface); }
+  .icon-tile { box-shadow: none; }
+  .skel { background: linear-gradient(90deg, #171b22 25%, #1f242d 37%, #171b22 63%); background-size:200% 100%; }
+  .date-badge { background: var(--blue-dim); border-color: var(--blue-mid); }
+}

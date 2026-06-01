@@ -23,6 +23,29 @@ const SVC: Record<string,{Icon:any;color:string}> = {
 }
 const svc = (t:string) => SVC[t] || SVC['Autre']
 
+// Retour haptique léger (PWA) — rend chaque action "physique"
+const haptic = (ms:number|number[]=10) => { try { (navigator as any).vibrate?.(ms) } catch {} }
+
+// Salutation selon l'heure
+function salutation() {
+  const h = new Date().getHours()
+  if (h < 6)  return 'Bonne nuit'
+  if (h < 18) return 'Bonjour'
+  return 'Bonsoir'
+}
+
+// Montant avec décimales atténuées (réflexe fintech)
+function MontantHero({ value }: { value:number }) {
+  const s = formatPrix(value)
+  const i = s.indexOf(',')
+  if (i === -1) return <span className="amount-hero" style={{fontSize:46,lineHeight:1}}>{s}</span>
+  return (
+    <span className="amount-hero" style={{fontSize:46,lineHeight:1}}>
+      {s.slice(0,i)}<span style={{fontSize:'0.56em',opacity:0.6,fontWeight:700}}>{s.slice(i)}</span>
+    </span>
+  )
+}
+
 function useCountUp(target: number, duration = 900) {
   const [val, setVal] = useState(0)
   const prev = useRef(0)
@@ -43,10 +66,12 @@ export default function Dashboard() {
   const [demandes, setDemandes] = useState<Demande[]>([])
   const [artisan, setArtisan] = useState<Artisan|null>(null)
   const [loading, setLoading] = useState(true)
-  const [validating, setValidating] = useState<string|null>(null)
+  const [validating] = useState<string|null>(null)
   const [removing, setRemoving] = useState<string|null>(null)
   const [modal, setModal] = useState<Demande|null>(null)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [toast, setToast] = useState<{msg:string; action?:{label:string; fn:()=>void}}|null>(null)
+  const undoRef = useRef<{id:string; timer:any}|null>(null)
 
   const { artisanId } = useParams<{ artisanId:string }>()
   useEffect(() => {
@@ -71,6 +96,8 @@ export default function Dashboard() {
   }, [artisan?.id])
   useEffect(() => { load() }, [load])
   useEffect(() => { const t = setInterval(load, 30000); return () => clearInterval(t) }, [load])
+  // toasts de confirmation (sans action) → disparaissent seuls
+  useEffect(() => { if (toast && !toast.action) { const t = setTimeout(()=>setToast(null), 2600); return ()=>clearTimeout(t) } }, [toast])
 
   const nouvelles  = demandes.filter(d => ['nouvelle','devis_envoye','creneau_propose'].includes(d.statut))
   const confirmes  = demandes.filter(d => ['confirme','en_cours'].includes(d.statut)).sort((a,b)=>new Date(a.date_chantier||0).getTime()-new Date(b.date_chantier||0).getTime())
@@ -79,26 +106,52 @@ export default function Dashboard() {
   const encaisse   = payes.reduce((s,d)=>s+(d.prix_estime||0),0)
   const today      = confirmes.filter(d => d.date_chantier && isToday(d.date_chantier))
 
-  async function valider(id: string) {
-    setValidating(id)
-    // 1. enregistre le paiement côté serveur
-    await fetch('/api/valider', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({demande_id:id}) })
-    // 2. déclenche l'animation de sortie de la carte
-    setValidating(null); setRemoving(id)
-    // 3. laisse l'animation se jouer, puis recharge (le cash encaissé monte, le potentiel baisse)
-    setTimeout(async () => { await load(); setRemoving(null) }, 560)
+  function valider(id: string) {
+    haptic([12,40,16])
+    // Animation de sortie immédiate (feel instantané) + fenêtre d'annulation de 4s façon Gmail
+    setRemoving(id)
+    const timer = setTimeout(async () => {
+      undoRef.current = null
+      await fetch('/api/valider', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({demande_id:id}) })
+      await load(); setRemoving(null); setToast(null)
+    }, 4000)
+    undoRef.current = { id, timer }
+    setToast({ msg:'Chantier encaissé', action:{ label:'Annuler', fn:()=>{
+      if (undoRef.current) { clearTimeout(undoRef.current.timer); undoRef.current = null }
+      setRemoving(null); setToast(null); haptic(8)
+    }}})
   }
   async function proposer(id: string, creneaux: any[]) {
+    haptic(12)
     await fetch('/api/creneaux', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({demande_id:id, creneaux}) })
     setModal(null); await load()
+    setToast({ msg:'Créneaux envoyés au client' })
   }
   async function saveArtisan(fields: Partial<Artisan>) {
     const r = await fetch(`/api/artisan/${artisan!.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(fields) })
     if (r.ok) setArtisan(await r.json())
   }
+  function copyLink() {
+    navigator.clipboard.writeText(`${window.location.origin}/formulaire/${artisan!.id}`)
+    setLinkCopied(true); haptic(8); setToast({ msg:'Lien client copié' })
+    setTimeout(()=>setLinkCopied(false),1600)
+  }
 
   if (loading) return (
-    <div style={{minHeight:'100vh',background:'var(--bg-grad)',display:'flex',alignItems:'center',justifyContent:'center'}}><div className="spinner" /></div>
+    <div style={{minHeight:'100vh',background:'var(--bg-grad)'}}>
+      <div style={{maxWidth:480,margin:'0 auto',padding:'20px 16px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:11,marginBottom:18}}>
+          <div className="skel" style={{width:40,height:40,borderRadius:13}} />
+          <div style={{flex:1}}><div className="skel" style={{width:80,height:10,marginBottom:7}} /><div className="skel" style={{width:140,height:14}} /></div>
+        </div>
+        <div className="skel" style={{height:168,borderRadius:22,marginBottom:18}} />
+        <div className="skel" style={{width:120,height:18,marginBottom:14}} />
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          <div className="skel" style={{height:128,borderRadius:20}} />
+          <div className="skel" style={{height:128,borderRadius:20}} />
+        </div>
+      </div>
+    </div>
   )
 
   if (!artisan) return (
@@ -124,18 +177,18 @@ export default function Dashboard() {
               {(artisan.nom_entreprise||artisan.nom||'T')[0].toUpperCase()}
             </div>
             <div>
-              <p style={{fontSize:11,color:'var(--text3)'}}>Bonjour</p>
+              <p style={{fontSize:11,color:'var(--text3)'}}>{salutation()}</p>
               <p style={{fontSize:15,fontWeight:700,letterSpacing:'-0.02em'}}>{artisan.nom_entreprise||artisan.nom}</p>
             </div>
           </div>
           <button
-            onClick={()=>{ navigator.clipboard.writeText(`${window.location.origin}/formulaire/${artisan.id}`); setLinkCopied(true); setTimeout(()=>setLinkCopied(false),1600) }}
+            onClick={copyLink}
             className="fab" style={{width:'auto',padding:'0 14px',gap:7,fontSize:13,fontWeight:600}} title="Copier le lien de demande client">
             {linkCopied ? <><Check size={16} color="var(--green)"/>Copié</> : <><Link2 size={16}/>Lien client</>}
           </button>
         </div>
 
-        {tab==='accueil'     && <Accueil today={today} nouvelles={nouvelles} encaisse={encaisse} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} goTo={setTab} />}
+        {tab==='accueil'     && <Accueil today={today} nouvelles={nouvelles} encaisse={encaisse} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} goTo={setTab} onShare={copyLink} />}
         {tab==='planning'    && <Planning confirmes={confirmes} artisan={artisan} save={saveArtisan} />}
         {tab==='historique'  && <Historique payes={payes} encaisse={encaisse} />}
         {tab==='stats'       && <Stats payes={payes} demandes={demandes} encaisse={encaisse} />}
@@ -152,7 +205,7 @@ export default function Dashboard() {
         ] as const).map(t => {
           const on = tab===t.k
           return (
-            <button key={t.k} onClick={()=>setTab(t.k)} className={`nav-item ${on?'on':''}`}>
+            <button key={t.k} onClick={()=>{ haptic(6); setTab(t.k) }} className={`nav-item ${on?'on':''}`}>
               <div className="nav-ico">
                 <t.Icon size={21} color={on?'var(--blue)':'#94a3b8'} strokeWidth={on?2.5:2} />
                 {t.n>0 && <span style={{position:'absolute',top:-1,right:3,background:'#ff3b30',color:'#fff',fontSize:9,fontWeight:700,minWidth:15,height:15,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 3px',border:'1.5px solid #fff'}}>{t.n}</span>}
@@ -164,6 +217,16 @@ export default function Dashboard() {
       </nav>
 
       {modal && <ModalCreneaux d={modal} artisan={artisan} confirmes={confirmes} onClose={()=>setModal(null)} onProposer={proposer} />}
+
+      {toast && (
+        <div className="toast-wrap">
+          <div className="toast">
+            <span className="t-ic"><Check size={14} color="#fff" strokeWidth={3} /></span>
+            <span className="t-msg">{toast.msg}</span>
+            {toast.action && <button onClick={toast.action.fn}>{toast.action.label}</button>}
+          </div>
+        </div>
+      )}
       <InstallPrompt />
     </div>
   )
@@ -219,18 +282,18 @@ function Paywall({ artisan }: { artisan:Artisan }) {
 }
 
 /* ───────── ACCUEIL ───────── */
-function Accueil({ today, nouvelles, encaisse, potentiel, confirmes, valider, validating, removing, onCreneaux, goTo }: any) {
+function Accueil({ today, nouvelles, encaisse, potentiel, confirmes, valider, validating, removing, onCreneaux, goTo, onShare }: any) {
   const animEnc = useCountUp(encaisse)
   return (
     <div className="a-fadeUp">
       {/* Hero — reste fixe au défilement */}
-      <div className="hero-card a-scaleIn" style={{padding:'22px 22px 20px',marginBottom:16,position:'sticky',top:8,zIndex:5}}>
+      <div className="hero-card a-scaleIn" style={{padding:'22px 22px 20px',marginBottom:16}}>
         <div className="hero-shine" />
         <div style={{position:'relative',zIndex:1}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
             <div>
               <p style={{fontSize:13,fontWeight:600,color:'rgba(255,255,255,0.95)',marginBottom:6}}>Encaissé ce mois</p>
-              <p className="amount-hero" style={{fontSize:46,lineHeight:1}}>{formatPrix(animEnc)}</p>
+              <p style={{margin:0}}><MontantHero value={animEnc} /></p>
               <div style={{display:'inline-flex',alignItems:'center',gap:4,marginTop:10,background:'rgba(255,255,255,0.18)',borderRadius:7,padding:'4px 9px'}}>
                 <TrendingUp size={13} color="#fff" />
                 <span style={{fontSize:11,fontWeight:600}}>Objectif du mois</span>
@@ -263,6 +326,16 @@ function Accueil({ today, nouvelles, encaisse, potentiel, confirmes, valider, va
       {(() => {
         const list = (confirmes as Demande[]).filter(d => d.date_chantier)
         if (list.length === 0) {
+          if (nouvelles.length === 0) {
+            return (
+              <div style={{textAlign:'center',padding:'40px 14px'}} className="a-fadeIn">
+                <div className="icon-tile" style={{width:58,height:58,borderRadius:16,background:'var(--blue-dim)',border:'1px solid var(--blue-mid)',margin:'0 auto 16px'}}><Link2 size={24} color="var(--blue)" /></div>
+                <p style={{fontSize:16,fontWeight:700,marginBottom:5}}>Prêt à recevoir vos demandes</p>
+                <p style={{fontSize:13.5,color:'var(--text3)',maxWidth:280,margin:'0 auto 18px',lineHeight:1.5}}>Partagez votre lien client : chaque demande arrivera directement ici.</p>
+                <button onClick={onShare} className="btn-primary" style={{width:'auto',padding:'13px 22px',margin:'0 auto'}}><Link2 size={17}/>Partager mon lien client</button>
+              </div>
+            )
+          }
           return <Empty Icon={CalendarDays} title="Aucun chantier planifié" sub="Vos chantiers confirmés s'afficheront ici, groupés par jour." />
         }
         // Regroupe par jour
@@ -895,7 +968,7 @@ function ModalCreneaux({ d, artisan, confirmes, onClose, onProposer }: { d:Deman
 
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:50,background:'rgba(8,14,30,0.5)',backdropFilter:'blur(6px)',display:'flex',alignItems:'flex-end'}}>
-      <div onClick={e=>e.stopPropagation()} className="a-slideUp" style={{width:'100%',maxWidth:480,margin:'0 auto',background:'#fff',borderRadius:'26px 26px 0 0',padding:'12px 16px 32px',boxShadow:'var(--shadow-lg)',maxHeight:'90vh',overflowY:'auto'}}>
+      <div onClick={e=>e.stopPropagation()} className="a-slideUp" style={{width:'100%',maxWidth:480,margin:'0 auto',background:'var(--surface)',borderRadius:'26px 26px 0 0',padding:'12px 16px 32px',boxShadow:'var(--shadow-lg)',maxHeight:'90vh',overflowY:'auto'}}>
         <div style={{width:36,height:4,background:'var(--border2)',borderRadius:2,margin:'0 auto 20px'}} />
         <p style={{fontSize:18,fontWeight:700,letterSpacing:'-0.03em',marginBottom:4}}>Proposer des créneaux</p>
         <p style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>{d.client_nom} · {d.type_intervention}</p>

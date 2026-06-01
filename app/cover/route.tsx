@@ -9,7 +9,7 @@ export async function GET() {
       <div style={{
         width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'flex-start',
-        background: 'linear-gradient(135deg, #2f6bff 0%, #0e3bb0 45%, #071a55 80%, #040f33 100%)',
+        background: 'linear-gradient(135deg, #2a63de 0%, #1550cf 40%, #0c2f7a 75%, #061640 100%)',
         color: '#fff', fontFamily: 'sans-serif', paddingTop: 78,
       }}>
         <div style={{

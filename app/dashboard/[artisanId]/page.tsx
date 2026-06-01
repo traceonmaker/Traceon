@@ -1,13 +1,13 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
-import { formatDate, formatHeure, formatPrix, isToday, isTomorrow, suggererCreneaux } from '@/lib/utils'
+import { formatDate, formatHeure, isToday, isTomorrow, suggererCreneaux } from '@/lib/utils'
 import type { Demande, Artisan, TypeChantier, Prestation } from '@/lib/supabase'
 import {
   Home, CalendarDays, Clock, BarChart3, Settings, Phone, MapPin, Check,
   Link2, Plus, Trash2, Droplet, Zap, Snowflake, Hammer, Paintbrush, Wrench,
   ChevronLeft, ChevronRight, TrendingUp, Save, Upload, Copy,
-  Euro, Briefcase, Receipt, Percent, FileText, Download
+  Euro, Briefcase, Receipt, Percent, FileText, Download, Sun, Moon, Monitor
 } from 'lucide-react'
 import InstallPrompt from '@/app/components/InstallPrompt'
 
@@ -26,6 +26,40 @@ const svc = (t:string) => SVC[t] || SVC['Autre']
 // Retour haptique léger (PWA) — rend chaque action "physique"
 const haptic = (ms:number|number[]=10) => { try { (navigator as any).vibrate?.(ms) } catch {} }
 
+// Montant en euros, sans centimes (plus net — réflexe Jobs)
+const eur = (n:number) => new Intl.NumberFormat('fr-FR',{ maximumFractionDigits:0 }).format(Math.round(n||0)) + ' €'
+
+// Prochain rendez-vous (chantier confirmé le plus proche, encore à venir)
+function prochainRDV(confirmes: Demande[]): Demande | null {
+  const now = Date.now()
+  const items = confirmes
+    .filter(d => d.creneau_accepte?.date || d.date_chantier)
+    .map(d => {
+      const c = d.creneau_accepte
+      const iso = c ? `${c.date}T${c.heure_debut || '08:00'}` : (d.date_chantier as string)
+      return { d, t: new Date(iso).getTime() }
+    })
+    .filter(x => !isNaN(x.t) && x.t >= now - 2*3600*1000)
+    .sort((a,b) => a.t - b.t)
+  return items[0]?.d || null
+}
+function whenLabel(d: Demande): string {
+  const c = d.creneau_accepte
+  const dateStr = (c?.date || d.date_chantier) as string
+  const heure = c?.heure_debut ? formatHeure(c.heure_debut) : ''
+  const j = isToday(dateStr) ? 'Auj.' : isTomorrow(dateStr) ? 'Dem.' : new Date(dateStr).toLocaleDateString('fr-FR',{weekday:'short'}).replace('.','')
+  return heure ? `${j} ${heure}` : j
+}
+
+// Thème clair / sombre / système
+type Theme = 'system'|'light'|'dark'
+const getTheme = (): Theme => { try { return (localStorage.getItem('traceon-theme') as Theme) || 'system' } catch { return 'system' } }
+const applyTheme = (t: Theme) => {
+  try { localStorage.setItem('traceon-theme', t) } catch {}
+  const dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+}
+
 // Salutation selon l'heure
 function salutation() {
   const h = new Date().getHours()
@@ -36,7 +70,7 @@ function salutation() {
 
 // Montant avec décimales atténuées (réflexe fintech)
 function MontantHero({ value }: { value:number }) {
-  const s = formatPrix(value)
+  const s = eur(value)
   const i = s.indexOf(',')
   if (i === -1) return <span className="amount-hero" style={{fontSize:46,lineHeight:1}}>{s}</span>
   return (
@@ -104,7 +138,6 @@ export default function Dashboard() {
   const payes      = demandes.filter(d => d.statut === 'paye')
   const potentiel  = confirmes.reduce((s,d)=>s+(d.prix_estime||0),0)
   const encaisse   = payes.reduce((s,d)=>s+(d.prix_estime||0),0)
-  const today      = confirmes.filter(d => d.date_chantier && isToday(d.date_chantier))
 
   function valider(id: string) {
     haptic([12,40,16])
@@ -188,7 +221,7 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {tab==='accueil'     && <Accueil today={today} nouvelles={nouvelles} encaisse={encaisse} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} goTo={setTab} onShare={copyLink} />}
+        {tab==='accueil'     && <Accueil nouvelles={nouvelles} encaisse={encaisse} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} onShare={copyLink} />}
         {tab==='planning'    && <Planning confirmes={confirmes} artisan={artisan} save={saveArtisan} />}
         {tab==='historique'  && <Historique payes={payes} encaisse={encaisse} />}
         {tab==='stats'       && <Stats payes={payes} demandes={demandes} encaisse={encaisse} />}
@@ -282,8 +315,9 @@ function Paywall({ artisan }: { artisan:Artisan }) {
 }
 
 /* ───────── ACCUEIL ───────── */
-function Accueil({ today, nouvelles, encaisse, potentiel, confirmes, valider, validating, removing, onCreneaux, goTo, onShare }: any) {
+function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validating, removing, onCreneaux, onShare }: any) {
   const animEnc = useCountUp(encaisse)
+  const prochain = prochainRDV(confirmes as Demande[])
   return (
     <div className="a-fadeUp">
       {/* Hero — reste fixe au défilement */}
@@ -292,22 +326,28 @@ function Accueil({ today, nouvelles, encaisse, potentiel, confirmes, valider, va
         <div style={{position:'relative',zIndex:1}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
             <div>
-              <p style={{fontSize:13,fontWeight:600,color:'rgba(255,255,255,0.95)',marginBottom:6}}>Encaissé ce mois</p>
+              <p style={{fontSize:13,fontWeight:600,color:'rgba(255,255,255,0.9)',marginBottom:7}}>Encaissé ce mois</p>
               <p style={{margin:0}}><MontantHero value={animEnc} /></p>
-              <div style={{display:'inline-flex',alignItems:'center',gap:4,marginTop:10,background:'rgba(255,255,255,0.18)',borderRadius:7,padding:'4px 9px'}}>
-                <TrendingUp size={13} color="#fff" />
-                <span style={{fontSize:11,fontWeight:600}}>Objectif du mois</span>
-              </div>
             </div>
           </div>
           <div style={{display:'flex',gap:14,marginTop:20}}>
             <div className="hero-stat" style={{flex:1,padding:'13px 15px',border:'1px solid rgba(255,255,255,0.28)',background:'rgba(255,255,255,0.14)',backdropFilter:'blur(8px)',boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 6px 16px rgba(5,9,31,0.2)'}}>
-              <p style={{fontSize:14,fontWeight:800,color:'#fff',letterSpacing:'-0.02em'}}>Potentiel</p>
-              <p className="amount" style={{fontSize:21,marginTop:4,color:'#fff'}}>{formatPrix(potentiel)}</p>
+              <p style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,0.92)',letterSpacing:'-0.02em'}}>À encaisser</p>
+              <p className="amount" style={{fontSize:21,marginTop:4,color:'#fff'}}>{eur(potentiel)}</p>
             </div>
-            <div className="hero-stat" style={{flex:1,padding:'13px 15px',border:'1px solid rgba(255,255,255,0.28)',background:'rgba(255,255,255,0.14)',backdropFilter:'blur(8px)',boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 6px 16px rgba(5,9,31,0.2)'}}>
-              <p style={{fontSize:14,fontWeight:800,color:'#fff',letterSpacing:'-0.02em'}}>Aujourd'hui</p>
-              <p style={{fontSize:21,fontWeight:800,marginTop:4,letterSpacing:'-0.02em',color:'#fff'}}>{today.length} chantier{today.length>1?'s':''}</p>
+            <div className="hero-stat" style={{flex:1,padding:'13px 15px',border:'1px solid rgba(255,255,255,0.28)',background:'rgba(255,255,255,0.14)',backdropFilter:'blur(8px)',boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 6px 16px rgba(5,9,31,0.2)',minWidth:0}}>
+              <p style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,0.92)',letterSpacing:'-0.02em'}}>Prochain RDV</p>
+              {prochain ? (
+                <>
+                  <p style={{fontSize:20,fontWeight:800,marginTop:4,letterSpacing:'-0.02em',color:'#fff'}}>{whenLabel(prochain)}</p>
+                  <p style={{fontSize:12,color:'rgba(255,255,255,0.82)',marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{prochain.client_nom}</p>
+                </>
+              ) : (
+                <>
+                  <p style={{fontSize:20,fontWeight:800,marginTop:4,color:'#fff'}}>—</p>
+                  <p style={{fontSize:12,color:'rgba(255,255,255,0.82)',marginTop:1}}>Rien de prévu</p>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -317,8 +357,7 @@ function Accueil({ today, nouvelles, encaisse, potentiel, confirmes, valider, va
       {nouvelles.length>0 && <>
         <SectionTitle title="À traiter" count={nouvelles.length} />
         <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
-          {nouvelles.slice(0,3).map((d:Demande,i:number)=><CardDemande key={d.id} d={d} i={i} onCreneaux={()=>onCreneaux(d)} />)}
-          {nouvelles.length>3 && <button onClick={()=>goTo('accueil')} style={{fontSize:13,color:'var(--blue)',fontWeight:600,background:'none',border:'none',cursor:'pointer',padding:8}}>Voir les {nouvelles.length} demandes →</button>}
+          {nouvelles.map((d:Demande,i:number)=><CardDemande key={d.id} d={d} i={i} onCreneaux={()=>onCreneaux(d)} />)}
         </div>
       </>}
 
@@ -472,7 +511,7 @@ function Historique({ payes, encaisse }: { payes:Demande[]; encaisse:number }) {
       <div className="hero-card a-scaleIn" style={{padding:'20px 22px',marginBottom:16}}>
         <div style={{position:'relative',zIndex:1}}>
           <p style={{fontSize:13,opacity:.85,marginBottom:5}}>Total encaissé</p>
-          <p className="amount-hero" style={{fontSize:38}}>{formatPrix(encaisse)}</p>
+          <p className="amount-hero" style={{fontSize:38}}>{eur(encaisse)}</p>
           <p style={{fontSize:12,opacity:.8,marginTop:4}}>{payes.length} chantier{payes.length>1?'s':''} validé{payes.length>1?'s':''}</p>
         </div>
       </div>
@@ -490,7 +529,7 @@ function Historique({ payes, encaisse }: { payes:Demande[]; encaisse:number }) {
                     <div style={{flex:1}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
                         <p style={{fontSize:15,fontWeight:700}}>{d.client_nom}</p>
-                        <span className="amount-green" style={{fontSize:16}}>+{formatPrix(d.prix_estime||0)}</span>
+                        <span className="amount-green" style={{fontSize:16}}>+{eur(d.prix_estime||0)}</span>
                       </div>
                       <p style={{fontSize:12,color:'var(--text2)',marginTop:2}}>{d.type_intervention}</p>
                       <div style={{display:'flex',flexWrap:'wrap',gap:'4px 14px',marginTop:8}}>
@@ -539,10 +578,10 @@ function Stats({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demand
 
       {/* KPIs — cartes dark premium avec glow */}
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}}>
-        <KPI label="Chiffre d'affaires" value={formatPrix(encaisse)} Icon={Euro}      glow="#1d5fed" />
+        <KPI label="Chiffre d'affaires" value={eur(encaisse)} Icon={Euro}      glow="#1d5fed" />
         <KPI label="Chantiers"          value={`${payes.length}`}    Icon={Briefcase} glow="#1d5fed" />
-        <KPI label="Ticket moyen"       value={formatPrix(ticket)}   Icon={Receipt}   glow="#10b981" />
-        <KPI label="Taux de conversion" value={`${conv}%`}           Icon={Percent}   glow="#1d5fed" />
+        <KPI label="Ticket moyen"       value={eur(ticket)}   Icon={Receipt}   glow="#10b981" />
+        <KPI label="Taux de réussite"   value={`${conv}%`}           Icon={Percent}   glow="#1d5fed" />
       </div>
 
       {/* Graphique CA */}
@@ -576,7 +615,7 @@ function Stats({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demand
                       <s.Icon size={15} color={s.color} />
                       <span style={{fontSize:13,fontWeight:600,flex:1}}>{type}</span>
                       <span style={{fontSize:12,color:'var(--text3)'}}>{n}×</span>
-                      <span style={{fontSize:13,fontWeight:700,color:'var(--green)',minWidth:56,textAlign:'right'}}>{formatPrix(ca)}</span>
+                      <span style={{fontSize:13,fontWeight:700,color:'var(--green)',minWidth:56,textAlign:'right'}}>{eur(ca)}</span>
                     </div>
                     <div style={{height:7,background:'var(--surface2)',borderRadius:4,overflow:'hidden'}}>
                       <div style={{height:'100%',width:`${(ca/maxSvc)*100}%`,background:s.color,borderRadius:4,transition:'width .6s ease'}} />
@@ -606,6 +645,39 @@ function KPI({ label, value, Icon, glow }: { label:string; value:string; Icon:an
       </div>
       <p className="amount" style={{fontSize:24,color:'#fff',position:'relative'}}>{value}</p>
     </div>
+  )
+}
+
+/* ───────── RÉGLAGE APPARENCE (clair / auto / sombre) ───────── */
+function ThemeToggle() {
+  const [theme, setTheme] = useState<Theme>('system')
+  useEffect(() => { setTheme(getTheme()) }, [])
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const h = () => { if (getTheme() === 'system') applyTheme('system') }
+    mq.addEventListener('change', h)
+    return () => mq.removeEventListener('change', h)
+  }, [])
+  const choose = (t: Theme) => { haptic(6); setTheme(t); applyTheme(t) }
+  const opts: { v:Theme; l:string; Icon:any }[] = [
+    { v:'light',  l:'Clair',  Icon:Sun },
+    { v:'system', l:'Auto',   Icon:Monitor },
+    { v:'dark',   l:'Sombre', Icon:Moon },
+  ]
+  return (
+    <Section title="Apparence">
+      <div style={{display:'flex',gap:8}}>
+        {opts.map(o => {
+          const on = theme === o.v
+          return (
+            <button key={o.v} onClick={()=>choose(o.v)} style={{flex:1,padding:'12px 0',borderRadius:13,fontSize:12.5,fontWeight:600,cursor:'pointer',transition:'all .2s',display:'flex',flexDirection:'column',alignItems:'center',gap:6,background:on?'var(--blue)':'var(--surface2)',color:on?'#fff':'var(--text2)',border:`1px solid ${on?'var(--blue)':'var(--border)'}`}}>
+              <o.Icon size={18} strokeWidth={2.2} />
+              {o.l}
+            </button>
+          )
+        })}
+      </div>
+    </Section>
   )
 }
 
@@ -639,6 +711,8 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
   return (
     <div className="a-fadeUp" style={{display:'flex',flexDirection:'column',gap:14}}>
       <SectionTitle title="Paramètres" />
+
+      <ThemeToggle />
 
       {/* Entreprise */}
       <Section title="Entreprise">
@@ -900,11 +974,11 @@ function CardDemande({ d, i, onCreneaux }: { d:Demande; i:number; onCreneaux:()=
           <span style={{display:'inline-flex',alignItems:'center',background:`${s.color}1a`,color:s.color,fontSize:12,fontWeight:700,padding:'3px 11px',borderRadius:8}}>{d.type_intervention}</span>
           <p style={{fontSize:12,color:'var(--text3)',marginTop:6,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{d.client_adresse}</p>
         </div>
-        {d.prix_estime && <span className="amount-green" style={{fontSize:20,flexShrink:0}}>{formatPrix(d.prix_estime)}</span>}
+        {d.prix_estime && <span className="amount-green" style={{fontSize:20,flexShrink:0}}>{eur(d.prix_estime)}</span>}
       </div>
       {d.client_description && <p style={{fontSize:12,color:'var(--text2)',background:'var(--surface2)',borderRadius:10,padding:'8px 11px',marginBottom:12}}>{d.client_description}</p>}
       <div style={{display:'flex',gap:8}}>
-        <a href={`tel:${d.client_telephone}`} className="fab"><Phone size={17} /></a>
+        <a href={`tel:${d.client_telephone}`} className="fab" style={{color:'var(--blue)'}}><Phone size={18} /></a>
         <button onClick={onCreneaux} className="btn-primary" style={{flex:1,height:44,padding:'0 14px',fontSize:13}}><CalendarDays size={16}/>Proposer un créneau</button>
       </div>
     </div>
@@ -919,7 +993,7 @@ function CardChantier({ d, onValider, validating, removing=false, highlight=fals
       {/* Heure (juste les chiffres), montant en haut à droite */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:12}}>
         {c ? <span style={{fontSize:15,fontWeight:700,color:'var(--text2)',letterSpacing:'-0.01em'}}>{formatHeure(c.heure_debut)} – {formatHeure(c.heure_fin)}</span> : <span/>}
-        <span className="amount-green" style={{fontSize:22}}>{formatPrix(d.prix_estime||0)}</span>
+        <span className="amount-green" style={{fontSize:22}}>{eur(d.prix_estime||0)}</span>
       </div>
       <div style={{marginBottom:12}}>
         {/* Nom client, puis métier + localisation côte à côte */}
@@ -931,8 +1005,8 @@ function CardChantier({ d, onValider, validating, removing=false, highlight=fals
       </div>
       {/* Appel + Itinéraire discrets (icônes), Validé = seule action avec texte */}
       <div style={{display:'flex',gap:8}}>
-        <a href={`tel:${d.client_telephone}`} className="fab" style={{height:48}}><Phone size={18} /></a>
-        <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.client_adresse)}&travelmode=driving`} target="_blank" rel="noreferrer" className="fab" style={{height:48}}><MapPin size={18} /></a>
+        <a href={`tel:${d.client_telephone}`} className="fab" style={{height:48,color:'var(--blue)'}}><Phone size={18} /></a>
+        <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.client_adresse)}&travelmode=driving`} target="_blank" rel="noreferrer" className="fab" style={{height:48,color:'var(--blue)'}}><MapPin size={18} /></a>
         <button onClick={onValider} disabled={validating} className="btn-success" style={{flex:1,height:48,fontSize:15}}>
           {validating ? <span className="spinner spinner-w" /> : 'Validé'}
         </button>

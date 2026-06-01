@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { TypeChantier, Prestation, Horaires } from '@/lib/supabase'
@@ -42,17 +42,6 @@ export default function Onboarding() {
   const [created, setCreated] = useState<{id:string}|null>(null)
   const [copied, setCopied] = useState(false)
   const [erreur, setErreur] = useState('')
-  const [sessionEmail, setSessionEmail] = useState<string|null>(null)
-
-  // Exige une session : l'email du compte = l'email de connexion
-  useEffect(() => {
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user?.email) { router.replace('/login'); return }
-      setSessionEmail(session.user.email)
-      setD(p => ({ ...p, email: session.user.email! }))
-    })()
-  }, [router])
 
   const [d, setD] = useState({
     nom:'', email:'', telephone:'',
@@ -90,7 +79,13 @@ export default function Onboarding() {
     try {
       const r = await fetch('/api/artisan', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(d) })
       const a = await r.json()
-      if (r.ok) { setCreated({ id: a.id }) }
+      if (r.ok) {
+        // Connexion automatique immédiate (le mot de passe est aussi envoyé par SMS)
+        if (a.email && a.password) {
+          await supabase.auth.signInWithPassword({ email: a.email, password: a.password }).catch(()=>{})
+        }
+        setCreated({ id: a.id })
+      }
       else { setErreur(a.error || "Une erreur s'est produite. Réessayez.") }
     } catch {
       setErreur("Connexion impossible. Vérifiez votre réseau et réessayez.")
@@ -108,10 +103,6 @@ export default function Onboarding() {
     true,
   ][step]
 
-  if (!sessionEmail && !created) {
-    return <Shell><div style={{minHeight:'40vh',display:'flex',alignItems:'center',justifyContent:'center'}}><div className="spinner" /></div></Shell>
-  }
-
   if (created) {
     const lien = `${typeof window!=='undefined'?window.location.origin:''}/formulaire/${created.id}`
     return (
@@ -121,8 +112,11 @@ export default function Onboarding() {
             <CheckCircle2 size={42} color="var(--green)" />
           </div>
           <h1 style={{fontSize:26,fontWeight:900,letterSpacing:'-0.04em',marginBottom:8}}>C'est configuré</h1>
-          <p style={{fontSize:14,color:'var(--text2)',lineHeight:1.6,marginBottom:24}}>
+          <p style={{fontSize:14,color:'var(--text2)',lineHeight:1.6,marginBottom:16}}>
             {d.nom_entreprise} est prêt. Voici votre lien client à partager — chaque demande arrivera dans votre dashboard.
+          </p>
+          <p style={{fontSize:12.5,color:'var(--text3)',background:'var(--surface2)',borderRadius:10,padding:'10px 12px',marginBottom:20,lineHeight:1.5}}>
+            🔑 Votre mot de passe vient d'être envoyé par SMS au {d.telephone}. Vous pourrez le modifier dans Réglages.
           </p>
           <div className="card" style={{padding:14,marginBottom:16,display:'flex',alignItems:'center',gap:10}}>
             <span style={{flex:1,fontSize:12,color:'var(--text2)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',textAlign:'left'}}>{lien}</span>
@@ -163,11 +157,8 @@ export default function Onboarding() {
         {step===0 && (
           <div className="a-fadeUp" style={{display:'flex',flexDirection:'column',gap:12}}>
             <Field label="Votre nom" val={d.nom} set={v=>set('nom',v)} ph="Jean Martin" />
-            <div>
-              <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>Email <span style={{color:'var(--green)',fontWeight:600}}>· vérifié</span></label>
-              <input type="email" value={d.email} readOnly className="input-field" style={{opacity:.7,cursor:'not-allowed'}} />
-            </div>
-            <Field label="Téléphone" type="tel" val={d.telephone} set={v=>set('telephone',v)} ph="+596 696 00 00 00" />
+            <Field label="Email" type="email" val={d.email} set={v=>set('email',v)} ph="jean@entreprise.fr" />
+            <Field label="Téléphone (pour recevoir votre mot de passe par SMS)" type="tel" val={d.telephone} set={v=>set('telephone',v)} ph="+596 696 00 00 00" />
           </div>
         )}
 

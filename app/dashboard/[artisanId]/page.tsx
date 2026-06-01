@@ -776,6 +776,14 @@ function ThemeToggle() {
 /* ───────── PARAMÈTRES (toutes les variables entreprise) ───────── */
 function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisan>)=>Promise<void> }) {
   const router = useRouter()
+  const [pwd, setPwd] = useState('')
+  const [pwdMsg, setPwdMsg] = useState('')
+  async function changePwd() {
+    if (pwd.length < 6) { setPwdMsg('6 caractères minimum') ; return }
+    const { error } = await supabase.auth.updateUser({ password: pwd })
+    if (error) { setPwdMsg('Erreur, réessayez') }
+    else { setPwd(''); setPwdMsg('Mot de passe modifié ✓'); haptic(8) }
+  }
   const [f, setF] = useState<Partial<Artisan>>({
     nom_entreprise: artisan.nom_entreprise||'', telephone: artisan.telephone||'', email: artisan.email||'',
     logo_url: artisan.logo_url||'', adresse_entreprise: artisan.adresse_entreprise||'',
@@ -951,8 +959,14 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
 
       {/* Compte */}
       <Section title="Compte">
-        <p style={{fontSize:13,color:'var(--text2)',marginBottom:12}}>Connecté en tant que <b>{artisan.email}</b></p>
-        <button onClick={async ()=>{ haptic(8); await supabase.auth.signOut(); router.replace('/login') }} className="btn-ghost" style={{color:'var(--red)'}}>Se déconnecter</button>
+        <p style={{fontSize:13,color:'var(--text2)',marginBottom:14}}>Connecté en tant que <b>{artisan.email}</b></p>
+        <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>Modifier le mot de passe</label>
+        <div style={{display:'flex',gap:8}}>
+          <input type="password" value={pwd} onChange={e=>{setPwd(e.target.value); setPwdMsg('')}} placeholder="Nouveau mot de passe" className="input-field" autoComplete="new-password" />
+          <button onClick={changePwd} disabled={!pwd} className="btn-primary" style={{width:'auto',padding:'0 18px'}}>OK</button>
+        </div>
+        {pwdMsg && <p style={{fontSize:12,marginTop:7,fontWeight:600,color: pwdMsg.includes('✓')?'var(--green)':'var(--red)'}}>{pwdMsg}</p>}
+        <button onClick={async ()=>{ haptic(8); await supabase.auth.signOut(); router.replace('/login') }} className="btn-ghost" style={{color:'var(--red)',marginTop:16}}>Se déconnecter</button>
       </Section>
     </div>
   )

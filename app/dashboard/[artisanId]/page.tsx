@@ -23,34 +23,6 @@ const SVC: Record<string,{Icon:any;color:string}> = {
 }
 const svc = (t:string) => SVC[t] || SVC['Autre']
 
-// Mini-courbe pour le hero (inspirée des cartes fintech)
-function sparkData(confirmes: Demande[], encaisse: number): number[] {
-  // série lissée basée sur le volume — purement visuelle si peu de données
-  const base = [0.3, 0.45, 0.4, 0.6, 0.55, 0.75, 0.7, 0.9]
-  const factor = encaisse > 0 ? 1 : 0.6
-  return base.map(b => b * factor)
-}
-
-function Sparkline({ data, w = 84, h = 40 }: { data:number[]; w?:number; h?:number }) {
-  const max = Math.max(...data, 0.001)
-  const pts = data.map((v,i) => [ (i/(data.length-1))*w, h - (v/max)*(h-6) - 3 ])
-  const line = pts.map((p,i) => `${i===0?'M':'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')
-  const area = `${line} L${w},${h} L0,${h} Z`
-  return (
-    <svg width={w} height={h} style={{overflow:'visible'}}>
-      <defs>
-        <linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(255,255,255,0.35)" />
-          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-        </linearGradient>
-      </defs>
-      <path d={area} fill="url(#spark)" />
-      <path d={line} fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={pts[pts.length-1][0]} cy={pts[pts.length-1][1]} r={3} fill="#fff" />
-    </svg>
-  )
-}
-
 function useCountUp(target: number, duration = 900) {
   const [val, setVal] = useState(0)
   const prev = useRef(0)
@@ -148,7 +120,7 @@ export default function Dashboard() {
         {/* Top bar */}
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:18}}>
           <div style={{display:'flex',alignItems:'center',gap:11}}>
-            <div style={{width:40,height:40,borderRadius:13,background:'linear-gradient(135deg,#2f6bff,#0e47d2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:800,color:'#fff',boxShadow:'var(--shadow-blue)'}}>
+            <div style={{width:40,height:40,borderRadius:13,background:'linear-gradient(135deg,#2a63de,#1550cf)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:800,color:'#fff',boxShadow:'var(--shadow-blue)'}}>
               {(artisan.nom_entreprise||artisan.nom||'T')[0].toUpperCase()}
             </div>
             <div>
@@ -182,8 +154,8 @@ export default function Dashboard() {
           return (
             <button key={t.k} onClick={()=>setTab(t.k)} className={`nav-item ${on?'on':''}`}>
               <div className="nav-ico">
-                <t.Icon size={21} color={on?'var(--blue)':'#ffffff'} strokeWidth={on?2.6:2.1} />
-                {t.n>0 && <span style={{position:'absolute',top:-1,right:3,background:'#ff3b30',color:'#fff',fontSize:9,fontWeight:700,minWidth:15,height:15,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 3px',border:'1.5px solid #0a6bff'}}>{t.n}</span>}
+                <t.Icon size={21} color={on?'var(--blue)':'#94a3b8'} strokeWidth={on?2.5:2} />
+                {t.n>0 && <span style={{position:'absolute',top:-1,right:3,background:'#ff3b30',color:'#fff',fontSize:9,fontWeight:700,minWidth:15,height:15,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 3px',border:'1.5px solid #fff'}}>{t.n}</span>}
               </div>
               <span>{t.l}</span>
             </button>
@@ -217,7 +189,7 @@ function Paywall({ artisan }: { artisan:Artisan }) {
   return (
     <div style={{minHeight:'100vh',background:'var(--bg-grad)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div className="card a-scaleIn" style={{maxWidth:400,width:'100%',padding:'28px 24px',textAlign:'center'}}>
-        <div style={{width:56,height:56,borderRadius:16,background:'linear-gradient(135deg,#2f6bff,#0e47d2)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',boxShadow:'var(--shadow-blue)'}}>
+        <div style={{width:56,height:56,borderRadius:16,background:'linear-gradient(135deg,#2a63de,#1550cf)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',boxShadow:'var(--shadow-blue)'}}>
           <Briefcase size={26} color="#fff" />
         </div>
         <h1 style={{fontSize:22,fontWeight:800,letterSpacing:'-0.03em',marginBottom:6}}>Activez {artisan.nom_entreprise || 'votre espace'}</h1>
@@ -259,12 +231,11 @@ function Accueil({ today, nouvelles, encaisse, potentiel, confirmes, valider, va
             <div>
               <p style={{fontSize:13,fontWeight:600,color:'rgba(255,255,255,0.95)',marginBottom:6}}>Encaissé ce mois</p>
               <p className="amount-hero" style={{fontSize:46,lineHeight:1}}>{formatPrix(animEnc)}</p>
-              <div style={{display:'inline-flex',alignItems:'center',gap:4,marginTop:10,background:'rgba(255,255,255,0.22)',borderRadius:7,padding:'4px 9px'}}>
+              <div style={{display:'inline-flex',alignItems:'center',gap:4,marginTop:10,background:'rgba(255,255,255,0.18)',borderRadius:7,padding:'4px 9px'}}>
                 <TrendingUp size={13} color="#fff" />
-                <span style={{fontSize:11,fontWeight:700}}>Objectif du mois</span>
+                <span style={{fontSize:11,fontWeight:600}}>Objectif du mois</span>
               </div>
             </div>
-            <Sparkline data={sparkData(confirmes, encaisse)} />
           </div>
           <div style={{display:'flex',gap:14,marginTop:20}}>
             <div className="hero-stat" style={{flex:1,padding:'13px 15px',border:'1px solid rgba(255,255,255,0.28)',background:'rgba(255,255,255,0.14)',backdropFilter:'blur(8px)',boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 6px 16px rgba(5,9,31,0.2)'}}>
@@ -495,10 +466,10 @@ function Stats({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demand
 
       {/* KPIs — cartes dark premium avec glow */}
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}}>
-        <KPI label="Chiffre d'affaires" value={formatPrix(encaisse)} Icon={Euro}      glow="#2f6bff" />
-        <KPI label="Chantiers"          value={`${payes.length}`}    Icon={Briefcase} glow="#a855f7" />
+        <KPI label="Chiffre d'affaires" value={formatPrix(encaisse)} Icon={Euro}      glow="#1d5fed" />
+        <KPI label="Chantiers"          value={`${payes.length}`}    Icon={Briefcase} glow="#1d5fed" />
         <KPI label="Ticket moyen"       value={formatPrix(ticket)}   Icon={Receipt}   glow="#10b981" />
-        <KPI label="Taux de conversion" value={`${conv}%`}           Icon={Percent}   glow="#f59e0b" />
+        <KPI label="Taux de conversion" value={`${conv}%`}           Icon={Percent}   glow="#1d5fed" />
       </div>
 
       {/* Graphique CA */}
@@ -511,7 +482,7 @@ function Stats({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demand
           {caByMonth.map((ca,i)=>(
             <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:6,height:'100%',justifyContent:'flex-end'}}>
               <span style={{fontSize:9,fontWeight:700,color:'var(--text2)'}}>{ca>0?Math.round(ca):''}</span>
-              <div style={{width:'100%',maxWidth:32,height:`${Math.max((ca/maxCA)*100,3)}%`,background:i===5?'linear-gradient(180deg,#3a7bff,#0e47d2)':'#cdddf5',borderRadius:'6px 6px 0 0',transformOrigin:'bottom',animation:`growBar .6s cubic-bezier(.22,1,.36,1) both`,animationDelay:`${i*0.06}s`,boxShadow:i===5?'0 4px 10px rgba(10,50,184,0.3)':'none'}} />
+              <div style={{width:'100%',maxWidth:32,height:`${Math.max((ca/maxCA)*100,3)}%`,background:i===5?'linear-gradient(180deg,#2a6af0,#1550cf)':'#d8e2f2',borderRadius:'6px 6px 0 0',transformOrigin:'bottom',animation:`growBar .6s cubic-bezier(.22,1,.36,1) both`,animationDelay:`${i*0.06}s`,boxShadow:i===5?'0 4px 10px rgba(10,50,184,0.3)':'none'}} />
               <span style={{fontSize:10,color:'var(--text2)',fontWeight:600}}>{months[i].toLocaleDateString('fr-FR',{month:'short'})}</span>
             </div>
           ))}
@@ -820,12 +791,11 @@ function SectionTitle({ title, count }: { title:string; count?:number }) {
       <h2 className="section-title">{title}</h2>
       {count!==undefined && count>0 && (
         <span style={{
-          display:'inline-flex',alignItems:'center',gap:5,
-          background:'linear-gradient(135deg,#ff5a52,#ff3b30)',color:'#fff',
-          fontSize:12,fontWeight:800,height:23,borderRadius:12,padding:'0 10px',
-          boxShadow:'0 2px 8px rgba(255,59,48,0.4)',letterSpacing:'-0.01em'
+          display:'inline-flex',alignItems:'center',
+          background:'var(--blue-dim)',color:'var(--blue)',
+          fontSize:12,fontWeight:700,height:22,borderRadius:11,padding:'0 11px',
+          letterSpacing:'-0.01em'
         }}>
-          <span style={{width:6,height:6,borderRadius:'50%',background:'#fff',animation:'pulseDot 1.3s ease-in-out infinite'}} />
           {count} nouveau{count>1?'x':''}
         </span>
       )}
@@ -852,7 +822,7 @@ function CardDemande({ d, i, onCreneaux }: { d:Demande; i:number; onCreneaux:()=
           <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:6}}>
             <span style={{fontSize:16,fontWeight:700}}>{d.client_nom}</span>
             {isNew && <span className="badge" style={{background:'var(--blue-dim)',color:'var(--blue)'}}>Nouveau</span>}
-            {d.statut==='creneau_propose' && <span className="badge" style={{background:'var(--amber-dim)',color:'var(--amber)'}}>En attente</span>}
+            {d.statut==='creneau_propose' && <span className="badge" style={{background:'#eef1f5',color:'var(--text2)'}}>En attente</span>}
           </div>
           <span style={{display:'inline-flex',alignItems:'center',background:`${s.color}1a`,color:s.color,fontSize:12,fontWeight:700,padding:'3px 11px',borderRadius:8}}>{d.type_intervention}</span>
           <p style={{fontSize:12,color:'var(--text3)',marginTop:6,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{d.client_adresse}</p>

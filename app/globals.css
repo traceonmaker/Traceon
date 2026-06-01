@@ -339,7 +339,7 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
 /* Hero gradient card — bleu électrique profond */
 .hero-card {
   position: relative;
-  border-radius: 22px;
+  border-radius: 20px;
   background: linear-gradient(158deg, #2a63de 0%, #1d5fed 48%, #1550cf 100%);
   box-shadow:
     0 1px 0 rgba(255,255,255,0.16) inset,
@@ -404,9 +404,10 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
 .nav-item.on .nav-ico {
   background: var(--blue-dim);
 }
+.nav-item:active { transform: scale(.92); }
 
 .fab {
-  width: 44px; height: 44px; border-radius: 12px;
+  width: 44px; height: 44px; border-radius: 14px;
   display: flex; align-items: center; justify-content: center;
   background: var(--surface);
   border: 1px solid var(--border2);
@@ -484,3 +485,25 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
 
 /* Transition douce lors du basculement de thème */
 body, .card, .fab, .bottom-nav, .input-field, .btn-ghost { transition: background-color .25s ease, border-color .25s ease, color .25s ease; }
+
+/* ───────── Célébration "Encaissé" (confetti) ───────── */
+@keyframes confettiFall {
+  0%   { transform: translateY(-12px) rotate(0deg);   opacity: 1 }
+  100% { transform: translateY(86vh)  rotate(620deg);  opacity: 0 }
+}
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 70; overflow: hidden; }
+.confetti i {
+  position: absolute; top: -14px; width: 9px; height: 14px; border-radius: 2px;
+  animation: confettiFall 1.15s cubic-bezier(.2,.7,.3,1) forwards;
+}
+
+/* ───────── Accessibilité : respect de "réduire les animations" ───────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .app-glow { animation: none !important; }
+}

@@ -107,6 +107,7 @@ export default function Dashboard() {
   const [modal, setModal] = useState<Demande|null>(null)
   const [linkCopied, setLinkCopied] = useState(false)
   const [toast, setToast] = useState<{msg:string; action?:{label:string; fn:()=>void}}|null>(null)
+  const [celebrate, setCelebrate] = useState(false)
   const undoRef = useRef<{id:string; timer:any}|null>(null)
 
   const { artisanId } = useParams<{ artisanId:string }>()
@@ -126,9 +127,15 @@ export default function Dashboard() {
 
   const load = useCallback(async () => {
     if (!artisan?.id) return
-    const r = await fetch(`/api/demandes?artisan_id=${artisan.id}`)
-    if (r.ok) setDemandes(await r.json())
-    setLoading(false)
+    try {
+      const r = await fetch(`/api/demandes?artisan_id=${artisan.id}`)
+      if (!r.ok) throw new Error()
+      setDemandes(await r.json())
+    } catch {
+      setToast(s => s || { msg:'Connexion impossible' })
+    } finally {
+      setLoading(false)
+    }
   }, [artisan?.id])
   useEffect(() => { load() }, [load])
   useEffect(() => { const t = setInterval(load, 30000); return () => clearInterval(t) }, [load])
@@ -147,8 +154,14 @@ export default function Dashboard() {
     setRemoving(id)
     const timer = setTimeout(async () => {
       undoRef.current = null
-      await fetch('/api/valider', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({demande_id:id}) })
-      await load(); setRemoving(null); setToast(null)
+      try {
+        const r = await fetch('/api/valider', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({demande_id:id}) })
+        if (!r.ok) throw new Error()
+        await load(); setRemoving(null); setToast(null)
+        haptic([10,30,10,30,20]); setCelebrate(true); setTimeout(()=>setCelebrate(false),1300)
+      } catch {
+        setRemoving(null); setToast({ msg:'Connexion impossible, réessaie' })
+      }
     }, 4000)
     undoRef.current = { id, timer }
     setToast({ msg:'Chantier encaissé', action:{ label:'Annuler', fn:()=>{
@@ -158,13 +171,23 @@ export default function Dashboard() {
   }
   async function proposer(id: string, creneaux: any[]) {
     haptic(12)
-    await fetch('/api/creneaux', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({demande_id:id, creneaux}) })
-    setModal(null); await load()
-    setToast({ msg:'Créneaux envoyés au client' })
+    try {
+      const r = await fetch('/api/creneaux', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({demande_id:id, creneaux}) })
+      if (!r.ok) throw new Error()
+      setModal(null); await load()
+      setToast({ msg:'Créneaux envoyés au client' })
+    } catch {
+      setToast({ msg:'Envoi impossible, réessaie' })
+    }
   }
   async function saveArtisan(fields: Partial<Artisan>) {
-    const r = await fetch(`/api/artisan/${artisan!.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(fields) })
-    if (r.ok) setArtisan(await r.json())
+    try {
+      const r = await fetch(`/api/artisan/${artisan!.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(fields) })
+      if (!r.ok) throw new Error()
+      setArtisan(await r.json())
+    } catch {
+      setToast({ msg:'Enregistrement impossible' })
+    }
   }
   function copyLink() {
     navigator.clipboard.writeText(`${window.location.origin}/formulaire/${artisan!.id}`)
@@ -252,6 +275,19 @@ export default function Dashboard() {
       </nav>
 
       {modal && <ModalCreneaux d={modal} artisan={artisan} confirmes={confirmes} onClose={()=>setModal(null)} onProposer={proposer} />}
+
+      {celebrate && (
+        <div className="confetti">
+          {Array.from({length:18}).map((_,i)=>(
+            <i key={i} style={{
+              left:`${(i*5.4+3)%98}%`,
+              background:['#1d5fed','#16c079','#f6c945','#ffffff'][i%4],
+              animationDelay:`${(i%6)*0.04}s`,
+              transform:`rotate(${i*37}deg)`,
+            }} />
+          ))}
+        </div>
+      )}
 
       {toast && (
         <div className="toast-wrap">
@@ -757,7 +793,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       </Section>
 
       {/* Grille tarifaire détaillée */}
-      <Section title="Grille tarifaire détaillée" action={<button onClick={()=>set('prestations',[...prest,{service:types[0]?.type||'Autre',libelle:'',prix:0,unite:'forfait'}])} className="fab" style={{width:32,height:32}}><Plus size={16}/></button>}>
+      <Section title="Grille tarifaire détaillée" collapsible defaultOpen={false} action={<button onClick={()=>set('prestations',[...prest,{service:types[0]?.type||'Autre',libelle:'',prix:0,unite:'forfait'}])} className="fab" style={{width:32,height:32}}><Plus size={16}/></button>}>
         {prest.length===0 && <p style={{fontSize:12,color:'var(--text3)',textAlign:'center',padding:'8px 0'}}>Aucune prestation détaillée.</p>}
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           {prest.map((p,i)=>(
@@ -791,7 +827,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       </Section>
 
       {/* Horaires */}
-      <Section title="Horaires de travail">
+      <Section title="Horaires de travail" collapsible defaultOpen={false}>
         {JOURS.map((j,i)=>{ const h=hr[j]; return (
           <div key={j} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:i<6?'1px solid var(--border)':'none',opacity:h.actif?1:0.5}}>
             <button onClick={()=>set('horaires',{...hr,[j]:{...h,actif:!h.actif}})} style={{width:40,height:23,borderRadius:12,border:'none',cursor:'pointer',background:h.actif?'var(--blue)':'var(--border2)',position:'relative',flexShrink:0}}>
@@ -808,7 +844,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       </Section>
 
       {/* Préférences de créneaux */}
-      <Section title="Préférences de créneaux">
+      <Section title="Préférences de créneaux" collapsible defaultOpen={false}>
         <p style={{fontSize:12,color:'var(--text2)',marginBottom:14,lineHeight:1.5}}>
           Selon la taille du chantier, l'app proposera automatiquement des créneaux au bon moment de la journée.
         </p>
@@ -841,7 +877,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       </Section>
 
       {/* Légal & devis */}
-      <Section title="Légal & devis">
+      <Section title="Légal & devis" collapsible defaultOpen={false}>
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <Field label="Modèle de devis (lien PDF)" val={f.modele_devis_url} set={(v:any)=>set('modele_devis_url',v)} />
           <Area label="Conditions de paiement" val={f.conditions_paiement} set={(v:any)=>set('conditions_paiement',v)} />
@@ -897,14 +933,21 @@ function InstallSection() {
     </Section>
   )
 }
-function Section({ title, action, children }: { title:string; action?:React.ReactNode; children:React.ReactNode }) {
+function Section({ title, action, children, collapsible=false, defaultOpen=true }: { title:string; action?:React.ReactNode; children:React.ReactNode; collapsible?:boolean; defaultOpen?:boolean }) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="card" style={{padding:18}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+      <div
+        onClick={collapsible ? () => { haptic(5); setOpen(o=>!o) } : undefined}
+        style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom: open?14:0, cursor: collapsible?'pointer':'default'}}
+      >
         <p style={{fontSize:14,fontWeight:700}}>{title}</p>
-        {action}
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          {action && <span onClick={e=>e.stopPropagation()}>{action}</span>}
+          {collapsible && <ChevronRight size={18} color="var(--text3)" style={{transform: open?'rotate(90deg)':'none', transition:'transform .2s'}} />}
+        </div>
       </div>
-      {children}
+      {(!collapsible || open) && children}
     </div>
   )
 }

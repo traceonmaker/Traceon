@@ -102,6 +102,20 @@ function useCountUp(target: number, duration = 900) {
   return val
 }
 
+// Pliage repliable qui se MÉMORISE (survit aux changements d'onglet / rechargements)
+function useCollapse(key: string, defaultOpen: boolean) {
+  const [open, setOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return defaultOpen
+    try { const v = localStorage.getItem('traceon-open-' + key); return v === null ? defaultOpen : v === '1' } catch { return defaultOpen }
+  })
+  const toggle = () => setOpen(o => {
+    const n = !o
+    try { localStorage.setItem('traceon-open-' + key, n ? '1' : '0') } catch {}
+    return n
+  })
+  return [open, toggle] as const
+}
+
 export default function Dashboard() {
   const [tab, setTab] = useState<Tab>('accueil')
   const [dir, setDir] = useState(1)
@@ -590,7 +604,7 @@ function Historique({ payes, encaisse }: { payes:Demande[]; encaisse:number }) {
         ? <Empty Icon={Clock} title="Aucun chantier" sub="Vos chantiers validés apparaîtront ici." />
         : <div style={{display:'flex',flexDirection:'column',gap:8}}>
             {ordered.map((g,i)=>(
-              <MonthGroup key={g.ts} label={moisAnnee(g.ts)} total={totalMois(g.items)} count={g.items.length} defaultOpen={i===0}>
+              <MonthGroup key={g.ts} id={g.ts} label={moisAnnee(g.ts)} total={totalMois(g.items)} count={g.items.length} defaultOpen={i===0}>
                 {g.items.map(d=><HistoCard key={d.id} d={d} />)}
               </MonthGroup>
             ))}
@@ -599,11 +613,11 @@ function Historique({ payes, encaisse }: { payes:Demande[]; encaisse:number }) {
   )
 }
 
-function MonthGroup({ label, total, count, defaultOpen, children }: { label:string; total:number; count:number; defaultOpen:boolean; children:React.ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen)
+function MonthGroup({ id, label, total, count, defaultOpen, children }: { id:string|number; label:string; total:number; count:number; defaultOpen:boolean; children:React.ReactNode }) {
+  const [open, toggle] = useCollapse('histo-' + id, defaultOpen)
   return (
     <div className="card" style={{padding:'12px 14px'}}>
-      <button onClick={()=>{ haptic(5); setOpen(o=>!o) }} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',background:'none',border:'none',cursor:'pointer',padding:0}}>
+      <button onClick={()=>{ haptic(5); toggle() }} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',background:'none',border:'none',cursor:'pointer',padding:0}}>
         <span style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
           <ChevronRight size={18} color="var(--text3)" style={{transform:open?'rotate(90deg)':'none',transition:'transform .2s',flexShrink:0}} />
           <span style={{fontSize:15,fontWeight:700,color:'var(--text)'}}>{label}</span>
@@ -757,7 +771,7 @@ function ThemeToggle() {
     { v:'dark',   l:'Sombre', Icon:Moon },
   ]
   return (
-    <Section title="Apparence">
+    <Section title="Apparence" defaultOpen>
       <div style={{display:'flex',gap:8}}>
         {opts.map(o => {
           const on = theme === o.v
@@ -856,7 +870,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       </Section>
 
       {/* Grille tarifaire détaillée */}
-      <Section title="Grille tarifaire détaillée" collapsible defaultOpen={false} action={<button onClick={()=>set('prestations',[...prest,{service:types[0]?.type||'Autre',libelle:'',prix:0,unite:'forfait'}])} className="fab" style={{width:32,height:32}}><Plus size={16}/></button>}>
+      <Section title="Grille tarifaire détaillée" action={<button onClick={()=>set('prestations',[...prest,{service:types[0]?.type||'Autre',libelle:'',prix:0,unite:'forfait'}])} className="fab" style={{width:32,height:32}}><Plus size={16}/></button>}>
         {prest.length===0 && <p style={{fontSize:12,color:'var(--text3)',textAlign:'center',padding:'8px 0'}}>Aucune prestation détaillée.</p>}
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           {prest.map((p,i)=>(
@@ -890,7 +904,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       </Section>
 
       {/* Horaires */}
-      <Section title="Horaires de travail" collapsible defaultOpen={false}>
+      <Section title="Horaires de travail">
         {JOURS.map((j,i)=>{ const h=hr[j]; return (
           <div key={j} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:i<6?'1px solid var(--border)':'none',opacity:h.actif?1:0.5}}>
             <button onClick={()=>set('horaires',{...hr,[j]:{...h,actif:!h.actif}})} style={{width:40,height:23,borderRadius:12,border:'none',cursor:'pointer',background:h.actif?'var(--blue)':'var(--border2)',position:'relative',flexShrink:0}}>
@@ -907,7 +921,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       </Section>
 
       {/* Préférences de créneaux */}
-      <Section title="Préférences de créneaux" collapsible defaultOpen={false}>
+      <Section title="Préférences de créneaux">
         <p style={{fontSize:12,color:'var(--text2)',marginBottom:14,lineHeight:1.5}}>
           Selon la taille du chantier, l'app proposera automatiquement des créneaux au bon moment de la journée.
         </p>
@@ -940,7 +954,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       </Section>
 
       {/* Légal & devis */}
-      <Section title="Légal & devis" collapsible defaultOpen={false}>
+      <Section title="Légal & devis">
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <Field label="Modèle de devis (lien PDF)" val={f.modele_devis_url} set={(v:any)=>set('modele_devis_url',v)} />
           <Area label="Conditions de paiement" val={f.conditions_paiement} set={(v:any)=>set('conditions_paiement',v)} />
@@ -1008,21 +1022,21 @@ function InstallSection() {
     </Section>
   )
 }
-function Section({ title, action, children, collapsible=false, defaultOpen=true }: { title:string; action?:React.ReactNode; children:React.ReactNode; collapsible?:boolean; defaultOpen?:boolean }) {
-  const [open, setOpen] = useState(defaultOpen)
+function Section({ title, action, children, defaultOpen=false }: { title:string; action?:React.ReactNode; children:React.ReactNode; defaultOpen?:boolean }) {
+  const [open, toggle] = useCollapse('sec-' + title, defaultOpen)
   return (
     <div className="card" style={{padding:18}}>
       <div
-        onClick={collapsible ? () => { haptic(5); setOpen(o=>!o) } : undefined}
-        style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom: open?14:0, cursor: collapsible?'pointer':'default'}}
+        onClick={()=>{ haptic(5); toggle() }}
+        style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom: open?14:0, cursor:'pointer'}}
       >
         <p style={{fontSize:14,fontWeight:700}}>{title}</p>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
           {action && <span onClick={e=>e.stopPropagation()}>{action}</span>}
-          {collapsible && <ChevronRight size={18} color="var(--text3)" style={{transform: open?'rotate(90deg)':'none', transition:'transform .2s'}} />}
+          <ChevronRight size={18} color="var(--text3)" style={{transform: open?'rotate(90deg)':'none', transition:'transform .2s'}} />
         </div>
       </div>
-      {(!collapsible || open) && children}
+      {open && children}
     </div>
   )
 }

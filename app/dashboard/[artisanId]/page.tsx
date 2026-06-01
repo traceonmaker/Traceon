@@ -12,6 +12,7 @@ import {
 import InstallPrompt from '@/app/components/InstallPrompt'
 
 type Tab = 'accueil'|'planning'|'historique'|'stats'|'parametres'
+const TABS: Tab[] = ['accueil','planning','historique','stats','parametres']
 
 const SVC: Record<string,{Icon:any;color:string}> = {
   'Plomberie':     { Icon:Droplet,   color:'#2563eb' },
@@ -99,6 +100,7 @@ function useCountUp(target: number, duration = 900) {
 
 export default function Dashboard() {
   const [tab, setTab] = useState<Tab>('accueil')
+  const [dir, setDir] = useState(1)
   const [demandes, setDemandes] = useState<Demande[]>([])
   const [artisan, setArtisan] = useState<Artisan|null>(null)
   const [loading, setLoading] = useState(true)
@@ -246,11 +248,13 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {tab==='accueil'     && <Accueil nouvelles={nouvelles} encaisse={encaisse} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} onShare={copyLink} />}
-        {tab==='planning'    && <Planning confirmes={confirmes} artisan={artisan} save={saveArtisan} />}
-        {tab==='historique'  && <Historique payes={payes} encaisse={encaisse} />}
-        {tab==='stats'       && <Stats payes={payes} demandes={demandes} encaisse={encaisse} />}
-        {tab==='parametres'  && <Parametres artisan={artisan} save={saveArtisan} />}
+        <div key={tab} className={`tab-pane ${dir>0?'fwd':'back'}`}>
+          {tab==='accueil'     && <Accueil nouvelles={nouvelles} encaisse={encaisse} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} onShare={copyLink} />}
+          {tab==='planning'    && <Planning confirmes={confirmes} artisan={artisan} save={saveArtisan} />}
+          {tab==='historique'  && <Historique payes={payes} encaisse={encaisse} />}
+          {tab==='stats'       && <Stats payes={payes} demandes={demandes} encaisse={encaisse} />}
+          {tab==='parametres'  && <Parametres artisan={artisan} save={saveArtisan} />}
+        </div>
       </div>
 
       <nav className="bottom-nav">
@@ -263,7 +267,7 @@ export default function Dashboard() {
         ] as const).map(t => {
           const on = tab===t.k
           return (
-            <button key={t.k} onClick={()=>{ haptic(6); setTab(t.k) }} className={`nav-item ${on?'on':''}`}>
+            <button key={t.k} onClick={()=>{ setDir(TABS.indexOf(t.k) >= TABS.indexOf(tab) ? 1 : -1); haptic(6); setTab(t.k) }} className={`nav-item ${on?'on':''}`}>
               <div className="nav-ico">
                 <t.Icon size={21} color={on?'var(--blue)':'#94a3b8'} strokeWidth={on?2.5:2} />
                 {t.n>0 && <span style={{position:'absolute',top:-1,right:3,background:'#ff3b30',color:'#fff',fontSize:9,fontWeight:700,minWidth:15,height:15,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 3px',border:'1.5px solid #fff'}}>{t.n}</span>}
@@ -336,7 +340,7 @@ function Paywall({ artisan }: { artisan:Artisan }) {
 
         <div style={{textAlign:'left',display:'flex',flexDirection:'column',gap:9,marginBottom:24}}>
           {avantages.map(a=>(
-            <div key={a} style={{display:'flex',alignItems:'center',gap:10,fontSize:13.5,fontWeight:500}}>
+            <div key={a} style={{display:'flex',alignItems:'center',gap:10,fontSize:13,fontWeight:500}}>
               <span style={{width:20,height:20,borderRadius:'50%',background:'var(--green-dim)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Check size={13} color="var(--green)"/></span>
               {a}
             </div>
@@ -357,7 +361,7 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
   const animEnc = useCountUp(encaisse)
   const prochain = prochainRDV(confirmes as Demande[])
   return (
-    <div className="a-fadeUp">
+    <div>
       {/* Hero — reste fixe au défilement */}
       <div className="hero-card a-scaleIn" style={{padding:'22px 22px 20px',marginBottom:16}}>
         <div className="hero-shine" />
@@ -371,7 +375,7 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
           <div style={{display:'flex',gap:14,marginTop:20}}>
             <div className="hero-stat" style={{flex:1,padding:'13px 15px',border:'1px solid rgba(255,255,255,0.28)',background:'rgba(255,255,255,0.14)',backdropFilter:'blur(8px)',boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 6px 16px rgba(5,9,31,0.2)'}}>
               <p style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,0.92)',letterSpacing:'-0.02em'}}>À encaisser</p>
-              <p className="amount" style={{fontSize:21,marginTop:4,color:'#fff'}}>{eur(potentiel)}</p>
+              <p className="amount" style={{fontSize:20,marginTop:4,color:'#fff'}}>{eur(potentiel)}</p>
             </div>
             <div className="hero-stat" style={{flex:1,padding:'13px 15px',border:'1px solid rgba(255,255,255,0.28)',background:'rgba(255,255,255,0.14)',backdropFilter:'blur(8px)',boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 6px 16px rgba(5,9,31,0.2)',minWidth:0}}>
               <p style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,0.92)',letterSpacing:'-0.02em'}}>Prochain RDV</p>
@@ -408,7 +412,7 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
               <div style={{textAlign:'center',padding:'40px 14px'}} className="a-fadeIn">
                 <div className="icon-tile" style={{width:58,height:58,borderRadius:16,background:'var(--blue-dim)',border:'1px solid var(--blue-mid)',margin:'0 auto 16px'}}><Link2 size={24} color="var(--blue)" /></div>
                 <p style={{fontSize:16,fontWeight:700,marginBottom:5}}>Prêt à recevoir vos demandes</p>
-                <p style={{fontSize:13.5,color:'var(--text3)',maxWidth:280,margin:'0 auto 18px',lineHeight:1.5}}>Partagez votre lien client : chaque demande arrivera directement ici.</p>
+                <p style={{fontSize:13,color:'var(--text3)',maxWidth:280,margin:'0 auto 18px',lineHeight:1.5}}>Partagez votre lien client : chaque demande arrivera directement ici.</p>
                 <button onClick={onShare} className="btn-primary" style={{width:'auto',padding:'13px 22px',margin:'0 auto'}}><Link2 size={17}/>Partager mon lien client</button>
               </div>
             )
@@ -470,7 +474,7 @@ function Planning({ confirmes, artisan, save }: { confirmes:Demande[]; artisan:A
   }
 
   return (
-    <div className="a-fadeUp">
+    <div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
         <SectionTitle title="Planning" />
         <div style={{display:'flex',alignItems:'center',gap:6}}>
@@ -545,7 +549,7 @@ function Historique({ payes, encaisse }: { payes:Demande[]; encaisse:number }) {
   // Plus récent en haut (par date de chantier décroissante)
   const liste = [...payes].sort((a,b) => new Date(b.date_chantier||b.created_at).getTime() - new Date(a.date_chantier||a.created_at).getTime())
   return (
-    <div className="a-fadeUp">
+    <div>
       <div className="hero-card a-scaleIn" style={{padding:'20px 22px',marginBottom:16}}>
         <div style={{position:'relative',zIndex:1}}>
           <p style={{fontSize:13,opacity:.85,marginBottom:5}}>Total encaissé</p>
@@ -611,7 +615,7 @@ function Stats({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demand
   const conv = demandes.length>0 ? Math.round(payes.length/demandes.length*100) : 0
 
   return (
-    <div className="a-fadeUp">
+    <div>
       <SectionTitle title="Statistiques" />
 
       {/* KPIs — cartes dark premium avec glow */}
@@ -708,7 +712,7 @@ function ThemeToggle() {
         {opts.map(o => {
           const on = theme === o.v
           return (
-            <button key={o.v} onClick={()=>choose(o.v)} style={{flex:1,padding:'12px 0',borderRadius:13,fontSize:12.5,fontWeight:600,cursor:'pointer',transition:'all .2s',display:'flex',flexDirection:'column',alignItems:'center',gap:6,background:on?'var(--blue)':'var(--surface2)',color:on?'#fff':'var(--text2)',border:`1px solid ${on?'var(--blue)':'var(--border)'}`}}>
+            <button key={o.v} onClick={()=>choose(o.v)} style={{flex:1,padding:'12px 0',borderRadius:13,fontSize:13,fontWeight:600,cursor:'pointer',transition:'all .2s',display:'flex',flexDirection:'column',alignItems:'center',gap:6,background:on?'var(--blue)':'var(--surface2)',color:on?'#fff':'var(--text2)',border:`1px solid ${on?'var(--blue)':'var(--border)'}`}}>
               <o.Icon size={18} strokeWidth={2.2} />
               {o.l}
             </button>
@@ -747,7 +751,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
   function logoUpload(file: File) { const r=new FileReader(); r.onload=()=>set('logo_url',r.result as string); r.readAsDataURL(file) }
 
   return (
-    <div className="a-fadeUp" style={{display:'flex',flexDirection:'column',gap:14}}>
+    <div style={{display:'flex',flexDirection:'column',gap:14}}>
       <SectionTitle title="Paramètres" />
 
       <ThemeToggle />
@@ -924,9 +928,9 @@ function InstallSection() {
           )}
           <div style={{background:'var(--surface2)',borderRadius:12,padding:14,border:'1px solid var(--border)'}}>
             <p style={{fontSize:12,fontWeight:700,marginBottom:8,display:'flex',alignItems:'center',gap:6}}>📱 Sur iPhone (Safari)</p>
-            <p style={{fontSize:12.5,color:'var(--text2)',lineHeight:1.7}}>1. Bouton <b>Partager</b> (carré + flèche ↑)<br/>2. <b>Sur l'écran d'accueil</b> → Ajouter</p>
+            <p style={{fontSize:13,color:'var(--text2)',lineHeight:1.7}}>1. Bouton <b>Partager</b> (carré + flèche ↑)<br/>2. <b>Sur l'écran d'accueil</b> → Ajouter</p>
             <p style={{fontSize:12,fontWeight:700,margin:'12px 0 8px',display:'flex',alignItems:'center',gap:6}}>🤖 Sur Android (Chrome)</p>
-            <p style={{fontSize:12.5,color:'var(--text2)',lineHeight:1.7}}>1. Menu <b>⋮</b> (3 points)<br/>2. <b>Ajouter à l'écran d'accueil</b></p>
+            <p style={{fontSize:13,color:'var(--text2)',lineHeight:1.7}}>1. Menu <b>⋮</b> (3 points)<br/>2. <b>Ajouter à l'écran d'accueil</b></p>
           </div>
         </>
       )}

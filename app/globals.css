@@ -2,6 +2,10 @@
 
 :root {
   color-scheme: light;
+  /* Échelle typographique (px) : 11 · 13 · 15 · 17 · 20 · 28 · 46 */
+  --fs-1: 11px; --fs-2: 13px; --fs-3: 15px; --fs-4: 17px; --fs-5: 20px; --fs-6: 28px; --fs-7: 46px;
+  /* Échelle d'espacement (grille 4/8pt) */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
   --bg:        #ffffff;
   --bg-grad:   linear-gradient(180deg, #f6f8fc 0%, #fbfcfe 45%, #ffffff 100%);
   --surface:   #ffffff;
@@ -46,7 +50,7 @@ body {
 /* Titres de section — rendu SF Pro / Inter optique */
 .section-title {
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, var(--font-inter), 'Inter', sans-serif;
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.045em;
   color: var(--text);
@@ -496,6 +500,12 @@ body, .card, .fab, .bottom-nav, .input-field, .btn-ghost { transition: backgroun
   position: absolute; top: -14px; width: 9px; height: 14px; border-radius: 2px;
   animation: confettiFall 1.15s cubic-bezier(.2,.7,.3,1) forwards;
 }
+
+/* ───────── Transition entre onglets (slide directionnel) ───────── */
+@keyframes paneFwd  { from { opacity:0; transform: translateX(14px) }  to { opacity:1; transform:none } }
+@keyframes paneBack { from { opacity:0; transform: translateX(-14px) } to { opacity:1; transform:none } }
+.tab-pane.fwd  { animation: paneFwd  .3s cubic-bezier(.22,1,.36,1) both; }
+.tab-pane.back { animation: paneBack .3s cubic-bezier(.22,1,.36,1) both; }
 
 /* ───────── Accessibilité : respect de "réduire les animations" ───────── */
 @media (prefers-reduced-motion: reduce) {

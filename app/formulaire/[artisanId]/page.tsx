@@ -30,7 +30,7 @@ export default function Formulaire() {
   const [form, setForm] = useState<Form>({ type_intervention:'', client_nom:'', client_telephone:'', client_adresse:'', client_description:'', envergure:'' })
 
   useEffect(() => {
-    supabase.from('artisans').select('*').eq('id', artisanId).single()
+    supabase.from('artisans').select('id, nom, nom_entreprise, logo_url, types_chantier, zone_intervention').eq('id', artisanId).single()
       .then(({ data }) => { if (data) setArtisan(data as Artisan); setLoading(false) })
   }, [artisanId])
 

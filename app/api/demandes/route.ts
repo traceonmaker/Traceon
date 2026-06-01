@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { calculerPrixEstime } from '@/lib/utils'
+import { ownsArtisan } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
   const artisanId = req.nextUrl.searchParams.get('artisan_id')
   const statut = req.nextUrl.searchParams.get('statut')
+
+  // Les demandes contiennent des données client (PII) → réservé au propriétaire
+  if (!(await ownsArtisan(req, artisanId))) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   let query = supabaseAdmin.from('demandes').select('*').order('created_at', { ascending: false })
   if (artisanId) query = query.eq('artisan_id', artisanId)

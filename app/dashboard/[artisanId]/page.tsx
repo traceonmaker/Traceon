@@ -34,6 +34,14 @@ const haptic = (ms:number|number[]=10) => { try { (navigator as any).vibrate?.(m
 // Montant en euros, sans centimes (plus net — réflexe Jobs)
 const eur = (n:number) => new Intl.NumberFormat('fr-FR',{ maximumFractionDigits:0 }).format(Math.round(n||0)) + ' €'
 
+// fetch authentifié : joint le jeton de session (les routes sensibles le vérifient)
+async function authedFetch(input: string, init: RequestInit = {}) {
+  const { data: { session } } = await supabase.auth.getSession()
+  const headers: Record<string,string> = { ...(init.headers as Record<string,string> || {}) }
+  if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
+  return fetch(input, { ...init, headers })
+}
+
 // Prochain rendez-vous (chantier confirmé le plus proche, encore à venir)
 function prochainRDV(confirmes: Demande[]): Demande | null {
   const now = Date.now()
@@ -148,7 +156,7 @@ export default function Dashboard() {
         await fetch('/api/stripe/sync', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ artisan_id: artisanId }) }).catch(()=>{})
         window.history.replaceState({}, '', `/dashboard/${artisanId}`)
       }
-      const r = await fetch(`/api/artisan/${artisanId}`)
+      const r = await authedFetch(`/api/artisan/${artisanId}`)
       const d = await r.json()
       if (!d?.id) { setAuthed(true); return } // affichera l'écran "créer un compte"
       if (!isDemo && d.email?.toLowerCase() !== sessionEmail) { router.replace('/login'); return }
@@ -160,7 +168,7 @@ export default function Dashboard() {
   const load = useCallback(async () => {
     if (!artisan?.id) return
     try {
-      const r = await fetch(`/api/demandes?artisan_id=${artisan.id}`)
+      const r = await authedFetch(`/api/demandes?artisan_id=${artisan.id}`)
       if (!r.ok) throw new Error()
       setDemandes(await r.json())
     } catch {
@@ -187,7 +195,7 @@ export default function Dashboard() {
     const timer = setTimeout(async () => {
       undoRef.current = null
       try {
-        const r = await fetch('/api/valider', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({demande_id:id}) })
+        const r = await authedFetch('/api/valider', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({demande_id:id}) })
         if (!r.ok) throw new Error()
         await load(); setRemoving(null); setToast(null)
         haptic([10,30,10,30,20]); setCelebrate(true); setTimeout(()=>setCelebrate(false),1300)
@@ -204,7 +212,7 @@ export default function Dashboard() {
   async function proposer(id: string, creneaux: any[]) {
     haptic(12)
     try {
-      const r = await fetch('/api/creneaux', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({demande_id:id, creneaux}) })
+      const r = await authedFetch('/api/creneaux', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({demande_id:id, creneaux}) })
       if (!r.ok) throw new Error()
       setModal(null); await load()
       setToast({ msg:'Créneaux envoyés au client' })
@@ -214,7 +222,7 @@ export default function Dashboard() {
   }
   async function saveArtisan(fields: Partial<Artisan>) {
     try {
-      const r = await fetch(`/api/artisan/${artisan!.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(fields) })
+      const r = await authedFetch(`/api/artisan/${artisan!.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(fields) })
       if (!r.ok) throw new Error()
       setArtisan(await r.json())
     } catch {

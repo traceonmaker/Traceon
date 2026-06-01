@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { ownsDemande } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   const { demande_id, creneaux } = await req.json()
+  if (!(await ownsDemande(req, demande_id))) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const { data: demande } = await supabaseAdmin
     .from('demandes').select('client_nom, client_telephone, token, artisans(nom_entreprise, nom)')

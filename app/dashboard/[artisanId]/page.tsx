@@ -57,7 +57,9 @@ const getTheme = (): Theme => { try { return (localStorage.getItem('traceon-them
 const applyTheme = (t: Theme) => {
   try { localStorage.setItem('traceon-theme', t) } catch {}
   const dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-  document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+  const el = document.documentElement
+  el.setAttribute('data-theme', dark ? 'dark' : 'light')
+  el.style.colorScheme = dark ? 'dark' : 'light'
 }
 
 // Salutation selon l'heure

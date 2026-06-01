@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
   --bg:        #ffffff;
   --bg-grad:   linear-gradient(180deg, #f6f8fc 0%, #fbfcfe 45%, #ffffff 100%);
   --surface:   #ffffff;
@@ -446,6 +447,7 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
 
 /* ───────── Dark mode (piloté par data-theme="dark" sur <html>) ───────── */
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --bg:        #0b0d12;
   --bg-grad:   linear-gradient(180deg, #0d1016 0%, #0b0d12 60%, #0b0d12 100%);
   --surface:   #15181f;

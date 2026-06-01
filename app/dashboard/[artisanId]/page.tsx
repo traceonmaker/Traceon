@@ -14,6 +14,7 @@ import {
   Euro, Briefcase, Receipt, Percent, FileText, Download, Sun, Moon, Monitor
 } from 'lucide-react'
 import InstallPrompt from '@/app/components/InstallPrompt'
+import PushSetup from '@/app/components/PushSetup'
 
 type Tab = 'accueil'|'planning'|'historique'|'stats'|'parametres'
 const TABS: Tab[] = ['accueil','planning','historique','stats','parametres']
@@ -836,6 +837,8 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       <SectionTitle title="Paramètres" />
 
       <ThemeToggle />
+
+      <Section title="Notifications" defaultOpen><PushSetup artisanId={artisan.id} /></Section>
 
       {/* Entreprise */}
       <Section title="Entreprise">

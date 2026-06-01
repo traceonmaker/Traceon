@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { calculerPrixEstime } from '@/lib/utils'
 import { ownsArtisan } from '@/lib/auth'
+import { sendPush } from '@/lib/push'
 
 export async function GET(req: NextRequest) {
   const artisanId = req.nextUrl.searchParams.get('artisan_id')
@@ -37,6 +38,25 @@ export async function POST(req: NextRequest) {
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Notification push à l'artisan : la demande tombe sur son téléphone (best-effort, indépendant)
+  try {
+    const { data: aPush } = await supabaseAdmin
+      .from('artisans').select('push_subscriptions').eq('id', artisan_id).single()
+    const subs = (aPush as any)?.push_subscriptions || []
+    if (subs.length) {
+      const dead = await sendPush(subs, {
+        title: 'Nouvelle demande 🎯',
+        body: `${client_nom} · ${type_intervention}${prix_estime ? ` · ${Math.round(prix_estime)} €` : ''}`,
+        url: `/dashboard/${artisan_id}`,
+        tag: 'demande',
+      })
+      if (dead.length) {
+        const clean = subs.filter((s: any) => !dead.includes(s.endpoint))
+        await supabaseAdmin.from('artisans').update({ push_subscriptions: clean }).eq('id', artisan_id)
+      }
+    }
+  } catch {}
 
   await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/sms`, {
     method: 'POST',

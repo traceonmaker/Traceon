@@ -1,8 +1,12 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { formatDate, formatHeure, isToday, isTomorrow, suggererCreneaux } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 import type { Demande, Artisan, TypeChantier, Prestation } from '@/lib/supabase'
+
+// Compte démo — accessible sans connexion (pour les démonstrations commerciales)
+const DEMO_ID = '69c771ad-cdd1-412b-9022-0aac616a7d34'
 import {
   Home, CalendarDays, Clock, BarChart3, Settings, Phone, MapPin, Check,
   Link2, Plus, Trash2, Droplet, Zap, Snowflake, Hammer, Paintbrush, Wrench,
@@ -110,11 +114,21 @@ export default function Dashboard() {
   const [linkCopied, setLinkCopied] = useState(false)
   const [toast, setToast] = useState<{msg:string; action?:{label:string; fn:()=>void}}|null>(null)
   const [celebrate, setCelebrate] = useState(false)
+  const [authed, setAuthed] = useState<boolean|null>(null)
   const undoRef = useRef<{id:string; timer:any}|null>(null)
+  const router = useRouter()
 
   const { artisanId } = useParams<{ artisanId:string }>()
   useEffect(() => {
     async function init() {
+      const isDemo = artisanId === DEMO_ID
+      // Garde d'accès : hors démo, il faut être connecté ET propriétaire du compte
+      let sessionEmail: string | null = null
+      if (!isDemo) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.user?.email) { router.replace('/login'); return }
+        sessionEmail = session.user.email.toLowerCase()
+      }
       // Au retour du paiement Stripe, on réconcilie l'abonnement avant de charger
       if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('abonnement') === 'ok') {
         await fetch('/api/stripe/sync', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ artisan_id: artisanId }) }).catch(()=>{})
@@ -122,10 +136,12 @@ export default function Dashboard() {
       }
       const r = await fetch(`/api/artisan/${artisanId}`)
       const d = await r.json()
-      if (d?.id) setArtisan(d)
+      if (!d?.id) { setAuthed(true); return } // affichera l'écran "créer un compte"
+      if (!isDemo && d.email?.toLowerCase() !== sessionEmail) { router.replace('/login'); return }
+      setArtisan(d); setAuthed(true)
     }
     init()
-  }, [artisanId])
+  }, [artisanId, router])
 
   const load = useCallback(async () => {
     if (!artisan?.id) return
@@ -197,7 +213,7 @@ export default function Dashboard() {
     setTimeout(()=>setLinkCopied(false),1600)
   }
 
-  if (loading) return (
+  if (authed === null || (artisan && loading)) return (
     <div style={{minHeight:'100vh',background:'var(--bg-grad)'}}>
       <div style={{maxWidth:480,margin:'0 auto',padding:'20px 16px'}}>
         <div style={{display:'flex',alignItems:'center',gap:11,marginBottom:18}}>
@@ -546,8 +562,19 @@ function Planning({ confirmes, artisan, save }: { confirmes:Demande[]; artisan:A
 
 /* ───────── HISTORIQUE ───────── */
 function Historique({ payes, encaisse }: { payes:Demande[]; encaisse:number }) {
-  // Plus récent en haut (par date de chantier décroissante)
-  const liste = [...payes].sort((a,b) => new Date(b.date_chantier||b.created_at).getTime() - new Date(a.date_chantier||a.created_at).getTime())
+  // Regroupe par mois (éventail), du plus récent au plus ancien ; à l'intérieur, ordre alphabétique
+  const groups: Record<string,{ ts:number; items:Demande[] }> = {}
+  for (const d of payes) {
+    const dt = new Date(d.date_chantier || d.created_at)
+    const key = `${dt.getFullYear()}-${dt.getMonth()}`
+    if (!groups[key]) groups[key] = { ts: new Date(dt.getFullYear(), dt.getMonth(), 1).getTime(), items: [] }
+    groups[key].items.push(d)
+  }
+  const ordered = Object.values(groups).sort((a,b)=> b.ts - a.ts)
+  ordered.forEach(g => g.items.sort((a,b)=> (a.client_nom||'').localeCompare(b.client_nom||'', 'fr', { sensitivity:'base' })))
+  const moisAnnee = (ts:number) => { const s = new Date(ts).toLocaleDateString('fr-FR',{month:'long',year:'numeric'}); return s.charAt(0).toUpperCase()+s.slice(1) }
+  const totalMois = (items:Demande[]) => items.reduce((s,d)=>s+(d.prix_estime||0),0)
+
   return (
     <div>
       <div className="hero-card a-scaleIn" style={{padding:'20px 22px',marginBottom:16}}>
@@ -559,37 +586,60 @@ function Historique({ payes, encaisse }: { payes:Demande[]; encaisse:number }) {
       </div>
 
       <SectionTitle title="Chantiers réalisés" />
-      {liste.length===0
+      {ordered.length===0
         ? <Empty Icon={Clock} title="Aucun chantier" sub="Vos chantiers validés apparaîtront ici." />
-        : <div style={{display:'flex',flexDirection:'column',gap:10}}>
-            {liste.map((d,i)=>{
-              const s = svc(d.type_intervention); const c = d.creneau_accepte
-              return (
-                <div key={d.id} className={`card a-fadeUp d${Math.min(i+1,6)}`} style={{padding:14}}>
-                  <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
-                    <div className="icon-tile" style={{width:42,height:42,borderRadius:12,background:`${s.color}14`}}><s.Icon size={19} color={s.color} /></div>
-                    <div style={{flex:1}}>
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-                        <p style={{fontSize:15,fontWeight:700}}>{d.client_nom}</p>
-                        <span className="amount-green" style={{fontSize:16}}>+{eur(d.prix_estime||0)}</span>
-                      </div>
-                      <p style={{fontSize:12,color:'var(--text2)',marginTop:2}}>{d.type_intervention}</p>
-                      <div style={{display:'flex',flexWrap:'wrap',gap:'4px 14px',marginTop:8}}>
-                        {c && <Meta Icon={CalendarDays} txt={formatDate(c.date)} />}
-                        {c && <Meta Icon={Clock} txt={`${formatHeure(c.heure_debut)}–${formatHeure(c.heure_fin)}`} />}
-                        <Meta Icon={MapPin} txt={d.client_adresse} />
-                        <Meta Icon={Phone} txt={d.client_telephone} />
-                      </div>
-                      <a href={`/api/devis/${d.token}`} target="_blank" rel="noreferrer"
-                        style={{display:'inline-flex',alignItems:'center',gap:6,marginTop:10,fontSize:12,fontWeight:600,color:'var(--blue)',textDecoration:'none',background:'var(--blue-dim)',padding:'6px 12px',borderRadius:9,border:'1px solid var(--blue-mid)'}}>
-                        <FileText size={13}/>Devis PDF<Download size={13}/>
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+        : <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {ordered.map((g,i)=>(
+              <MonthGroup key={g.ts} label={moisAnnee(g.ts)} total={totalMois(g.items)} count={g.items.length} defaultOpen={i===0}>
+                {g.items.map(d=><HistoCard key={d.id} d={d} />)}
+              </MonthGroup>
+            ))}
           </div>}
+    </div>
+  )
+}
+
+function MonthGroup({ label, total, count, defaultOpen, children }: { label:string; total:number; count:number; defaultOpen:boolean; children:React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="card" style={{padding:'12px 14px'}}>
+      <button onClick={()=>{ haptic(5); setOpen(o=>!o) }} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',background:'none',border:'none',cursor:'pointer',padding:0}}>
+        <span style={{display:'flex',alignItems:'center',gap:8,minWidth:0}}>
+          <ChevronRight size={18} color="var(--text3)" style={{transform:open?'rotate(90deg)':'none',transition:'transform .2s',flexShrink:0}} />
+          <span style={{fontSize:15,fontWeight:700,color:'var(--text)'}}>{label}</span>
+          <span style={{fontSize:12,fontWeight:600,color:'var(--text3)'}}>· {count}</span>
+        </span>
+        <span className="amount-green" style={{fontSize:15,flexShrink:0}}>{eur(total)}</span>
+      </button>
+      {open && <div style={{display:'flex',flexDirection:'column',gap:10,marginTop:12}}>{children}</div>}
+    </div>
+  )
+}
+
+function HistoCard({ d }: { d:Demande }) {
+  const s = svc(d.type_intervention); const c = d.creneau_accepte
+  return (
+    <div style={{border:'1px solid var(--border)',borderRadius:14,padding:13}}>
+      <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+        <div className="icon-tile" style={{width:40,height:40,borderRadius:11,background:`${s.color}14`}}><s.Icon size={18} color={s.color} /></div>
+        <div style={{flex:1}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+            <p style={{fontSize:15,fontWeight:700}}>{d.client_nom}</p>
+            <span className="amount-green" style={{fontSize:16}}>+{eur(d.prix_estime||0)}</span>
+          </div>
+          <p style={{fontSize:12,color:'var(--text2)',marginTop:2}}>{d.type_intervention}</p>
+          <div style={{display:'flex',flexWrap:'wrap',gap:'4px 14px',marginTop:8}}>
+            {c && <Meta Icon={CalendarDays} txt={formatDate(c.date)} />}
+            {c && <Meta Icon={Clock} txt={`${formatHeure(c.heure_debut)}–${formatHeure(c.heure_fin)}`} />}
+            <Meta Icon={MapPin} txt={d.client_adresse} />
+            <Meta Icon={Phone} txt={d.client_telephone} />
+          </div>
+          <a href={`/api/devis/${d.token}`} target="_blank" rel="noreferrer"
+            style={{display:'inline-flex',alignItems:'center',gap:6,marginTop:10,fontSize:12,fontWeight:600,color:'var(--blue)',textDecoration:'none',background:'var(--blue-dim)',padding:'6px 12px',borderRadius:9,border:'1px solid var(--blue-mid)'}}>
+            <FileText size={13}/>Devis PDF<Download size={13}/>
+          </a>
+        </div>
+      </div>
     </div>
   )
 }
@@ -725,6 +775,7 @@ function ThemeToggle() {
 
 /* ───────── PARAMÈTRES (toutes les variables entreprise) ───────── */
 function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisan>)=>Promise<void> }) {
+  const router = useRouter()
   const [f, setF] = useState<Partial<Artisan>>({
     nom_entreprise: artisan.nom_entreprise||'', telephone: artisan.telephone||'', email: artisan.email||'',
     logo_url: artisan.logo_url||'', adresse_entreprise: artisan.adresse_entreprise||'',
@@ -897,6 +948,12 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
 
       {/* Installer l'application */}
       <InstallSection />
+
+      {/* Compte */}
+      <Section title="Compte">
+        <p style={{fontSize:13,color:'var(--text2)',marginBottom:12}}>Connecté en tant que <b>{artisan.email}</b></p>
+        <button onClick={async ()=>{ haptic(8); await supabase.auth.signOut(); router.replace('/login') }} className="btn-ghost" style={{color:'var(--red)'}}>Se déconnecter</button>
+      </Section>
     </div>
   )
 }

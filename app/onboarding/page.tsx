@@ -1,6 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 import type { TypeChantier, Prestation, Horaires } from '@/lib/supabase'
 import {
   Building2, User, Wrench, Receipt, Clock, FileText, Check, ArrowRight, ArrowLeft,
@@ -41,6 +42,17 @@ export default function Onboarding() {
   const [created, setCreated] = useState<{id:string}|null>(null)
   const [copied, setCopied] = useState(false)
   const [erreur, setErreur] = useState('')
+  const [sessionEmail, setSessionEmail] = useState<string|null>(null)
+
+  // Exige une session : l'email du compte = l'email de connexion
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.email) { router.replace('/login'); return }
+      setSessionEmail(session.user.email)
+      setD(p => ({ ...p, email: session.user.email! }))
+    })()
+  }, [router])
 
   const [d, setD] = useState({
     nom:'', email:'', telephone:'',
@@ -96,6 +108,10 @@ export default function Onboarding() {
     true,
   ][step]
 
+  if (!sessionEmail && !created) {
+    return <Shell><div style={{minHeight:'40vh',display:'flex',alignItems:'center',justifyContent:'center'}}><div className="spinner" /></div></Shell>
+  }
+
   if (created) {
     const lien = `${typeof window!=='undefined'?window.location.origin:''}/formulaire/${created.id}`
     return (
@@ -147,7 +163,10 @@ export default function Onboarding() {
         {step===0 && (
           <div className="a-fadeUp" style={{display:'flex',flexDirection:'column',gap:12}}>
             <Field label="Votre nom" val={d.nom} set={v=>set('nom',v)} ph="Jean Martin" />
-            <Field label="Email" type="email" val={d.email} set={v=>set('email',v)} ph="jean@entreprise.fr" />
+            <div>
+              <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>Email <span style={{color:'var(--green)',fontWeight:600}}>· vérifié</span></label>
+              <input type="email" value={d.email} readOnly className="input-field" style={{opacity:.7,cursor:'not-allowed'}} />
+            </div>
             <Field label="Téléphone" type="tel" val={d.telephone} set={v=>set('telephone',v)} ph="+596 696 00 00 00" />
           </div>
         )}

@@ -45,7 +45,16 @@ body {
   letter-spacing: -0.014em;
   overflow-x: hidden;
   font-feature-settings: 'cv11', 'ss01', 'cv02';
+  /* Sensation "app native" */
+  padding-top: env(safe-area-inset-top);
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
+/* Le texte des champs reste sélectionnable */
+input, textarea, select, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
 
 /* Titres de section — rendu SF Pro / Inter optique */
 .section-title {
@@ -122,32 +131,29 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
   border: 1px solid var(--border2);
   border-radius: 20px;
   box-shadow:
-    0 1px 0 rgba(255,255,255,1) inset,
-    0 2px 6px rgba(15,23,42,0.06),
-    0 10px 24px rgba(15,23,42,0.08),
-    0 20px 48px rgba(30,64,175,0.06);
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 1px 2px rgba(15,23,42,0.04),
+    0 8px 22px rgba(15,23,42,0.06);
   transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease;
 }
 /* léger soulèvement des cartes interactives */
 .card-interactive { cursor: default; }
 .card-interactive:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   box-shadow:
-    0 1px 0 rgba(255,255,255,1) inset,
-    0 4px 10px rgba(15,23,42,0.08),
-    0 16px 32px rgba(15,23,42,0.12),
-    0 28px 60px rgba(10,50,184,0.10);
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 2px 6px rgba(15,23,42,0.06),
+    0 14px 30px rgba(15,23,42,0.10);
 }
 .card-interactive:active { transform: translateY(-1px) scale(.995); }
 
-/* Carte client — bordure plus contrastée */
+/* Carte client — bordure douce, légère élévation */
 .card-client {
-  border: 1.5px solid #c3d2e8;
+  border: 1px solid var(--border2);
   box-shadow:
-    0 1px 0 rgba(255,255,255,1) inset,
-    0 2px 8px rgba(15,23,42,0.07),
-    0 12px 28px rgba(15,23,42,0.10),
-    0 24px 52px rgba(10,50,184,0.07);
+    0 1px 0 rgba(255,255,255,0.9) inset,
+    0 1px 3px rgba(15,23,42,0.05),
+    0 10px 26px rgba(15,23,42,0.07);
 }
 
 /* Bouton "Validé" — violet */
@@ -373,7 +379,7 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
 
 /* Bottom nav — barre flottante bleu électrique */
 .bottom-nav {
-  position: fixed; bottom: 14px; left: 16px; right: 16px; z-index: 40;
+  position: fixed; bottom: calc(14px + env(safe-area-inset-bottom)); left: 16px; right: 16px; z-index: 40;
   display: flex; align-items: center; justify-content: space-around;
   padding: 8px 8px;
   background: rgba(255,255,255,0.82);

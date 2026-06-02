@@ -297,7 +297,7 @@ export default function Dashboard() {
   return (
     <div style={{minHeight:'100vh',background:'var(--bg-grad)',position:'relative'}}>
       <div className="app-glow" />
-      <div style={{maxWidth:480,margin:'0 auto',padding:'20px 16px 120px',position:'relative',zIndex:1}}>
+      <div style={{maxWidth:480,margin:'0 auto',padding:'20px 16px calc(124px + env(safe-area-inset-bottom))',position:'relative',zIndex:1}}>
 
         {/* Top bar */}
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:18}}>
@@ -352,7 +352,7 @@ export default function Dashboard() {
 
       {(tab==='accueil' || tab==='planning') && (
         <button onClick={()=>{ haptic(8); setAddOpen(true) }} aria-label="Ajouter un chantier"
-          style={{position:'fixed',right:18,bottom:84,zIndex:45,width:56,height:56,borderRadius:18,border:'none',cursor:'pointer',
+          style={{position:'fixed',right:18,bottom:'calc(86px + env(safe-area-inset-bottom))',zIndex:45,width:56,height:56,borderRadius:18,border:'none',cursor:'pointer',
             background:'linear-gradient(180deg,#2a6af0,#1551d0)',color:'#fff',
             boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 22px rgba(21,80,207,0.42)',
             display:'flex',alignItems:'center',justifyContent:'center'}}>

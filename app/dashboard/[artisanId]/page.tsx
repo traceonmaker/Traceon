@@ -11,7 +11,7 @@ import {
   Home, CalendarDays, Clock, BarChart3, Settings, Phone, MapPin, Check,
   Link2, Plus, Trash2, Droplet, Zap, Snowflake, Hammer, Paintbrush, Wrench,
   ChevronLeft, ChevronRight, TrendingUp, Save, Upload, Copy,
-  Euro, Briefcase, Receipt, Percent, FileText, Download, Sun, Moon, Monitor, Target
+  Euro, Briefcase, Receipt, Percent, FileText, Download, Sun, Moon, Monitor
 } from 'lucide-react'
 import InstallPrompt from '@/app/components/InstallPrompt'
 import PushSetup from '@/app/components/PushSetup'
@@ -41,22 +41,6 @@ async function authedFetch(input: string, init: RequestInit = {}) {
   const headers: Record<string,string> = { ...(init.headers as Record<string,string> || {}) }
   if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`
   return fetch(input, { ...init, headers })
-}
-
-// Anneau de progression (cash vers objectif mensuel) — façon Activity Rings
-function Ring({ percent, size = 76 }: { percent: number; size?: number }) {
-  const stroke = 7
-  const r = (size - stroke) / 2
-  const c = 2 * Math.PI * r
-  const p = Math.max(0, Math.min(percent, 100))
-  const off = c - (p / 100) * c
-  return (
-    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth={stroke} />
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#fff" strokeWidth={stroke} strokeLinecap="round"
-        strokeDasharray={c} strokeDashoffset={off} style={{ transition: 'stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)' }} />
-    </svg>
-  )
 }
 
 // Prochain rendez-vous (chantier confirmé le plus proche, encore à venir)
@@ -449,7 +433,6 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
   const animEnc = useCountUp(encaisse)
   const prochain = prochainRDV(confirmes as Demande[])
   const obj = Number(objectif) || 0
-  const pct = obj > 0 ? (animEnc / obj) * 100 : 0
   const atteint = obj > 0 && encaisse >= obj
   const reste = Math.max(obj - encaisse, 0)
   const todayList = (confirmes as Demande[]).filter(d => d.date_chantier && isToday(d.date_chantier!))
@@ -486,14 +469,6 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
                   : <>Plus que <b style={{color:'rgba(255,255,255,0.85)',fontWeight:700}}>{eur(reste)}</b> · objectif {eur(obj)}</>}
               </p>
             </div>
-            {obj > 0 && (
-              <div style={{position:'relative',width:76,height:76,flexShrink:0}}>
-                <Ring percent={pct} />
-                <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                  {atteint ? <Check size={26} color="#fff" strokeWidth={3} /> : <Target size={22} color="rgba(255,255,255,0.92)" />}
-                </div>
-              </div>
-            )}
           </div>
           <div style={{display:'flex',gap:14,marginTop:20}}>
             <div className="hero-stat" style={{flex:1,padding:'13px 15px',border:'1px solid rgba(255,255,255,0.28)',background:'rgba(255,255,255,0.14)',backdropFilter:'blur(8px)',boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 6px 16px rgba(5,9,31,0.2)'}}>

@@ -484,15 +484,7 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
         </div>
       </div>
 
-      {/* Nouvelles demandes */}
-      {nouvelles.length>0 && <>
-        <SectionTitle title="À traiter" count={nouvelles.length} />
-        <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
-          {nouvelles.map((d:Demande,i:number)=><CardDemande key={d.id} d={d} i={i} onCreneaux={()=>onCreneaux(d)} />)}
-        </div>
-      </>}
-
-      {/* Chantiers groupés par jour — date en titre noir, heure sur les cartes */}
+      {/* Chantiers confirmés d'abord — l'agenda du patron */}
       {(() => {
         const list = (confirmes as Demande[]).filter(d => d.date_chantier)
         if (list.length === 0) {
@@ -506,7 +498,7 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
               </div>
             )
           }
-          return <Empty Icon={CalendarDays} title="Aucun chantier planifié" sub="Vos chantiers confirmés s'afficheront ici, groupés par jour." />
+          return null
         }
         // Regroupe par jour
         const groups: { key:string; label:string; isToday:boolean; items:Demande[] }[] = []
@@ -533,6 +525,14 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
           </div>
         ))
       })()}
+
+      {/* Nouvelles demandes ensuite — les leads à traiter */}
+      {nouvelles.length>0 && <>
+        <SectionTitle title="À traiter" count={nouvelles.length} />
+        <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
+          {nouvelles.map((d:Demande,i:number)=><CardDemande key={d.id} d={d} i={i} onCreneaux={()=>onCreneaux(d)} />)}
+        </div>
+      </>}
     </div>
   )
 }

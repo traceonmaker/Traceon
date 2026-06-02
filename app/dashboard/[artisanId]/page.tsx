@@ -1162,54 +1162,61 @@ function Empty({ Icon, title, sub }: { Icon:any; title:string; sub:string }) {
   )
 }
 
-function CardDemande({ d, i, onCreneaux }: { d:Demande; i:number; onCreneaux:()=>void }) {
-  const isNew = d.statut === 'nouvelle'
-  const s = svc(d.type_intervention)
+// Catégorie en sourdine : point coloré + texte neutre (le bleu reste réservé à l'action)
+function CatLabel({ type }: { type:string }) {
+  const s = svc(type)
   return (
-    <div className={`card card-client card-interactive a-fadeUp d${Math.min(i+1,6)}`} style={{padding:14}}>
-      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10,marginBottom:12}}>
+    <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:12,fontWeight:600,color:'var(--text2)'}}>
+      <span style={{width:9,height:9,borderRadius:'50%',background:s.color,flexShrink:0}} />
+      {type}
+    </span>
+  )
+}
+
+function CardDemande({ d, i, onCreneaux }: { d:Demande; i:number; onCreneaux:()=>void }) {
+  const enAttente = d.statut === 'creneau_propose'
+  return (
+    <div className={`card card-client card-interactive a-fadeUp d${Math.min(i+1,6)}`} style={{padding:15}}>
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10}}>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:6}}>
-            <span style={{fontSize:16,fontWeight:700}}>{d.client_nom}</span>
-            {isNew && <span className="badge" style={{background:'var(--blue-dim)',color:'var(--blue)'}}>Nouveau</span>}
-            {d.statut==='creneau_propose' && <span className="badge" style={{background:'#eef1f5',color:'var(--text2)'}}>En attente</span>}
+          <p style={{fontSize:16,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{d.client_nom}</p>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginTop:5,flexWrap:'wrap'}}>
+            <CatLabel type={d.type_intervention} />
+            {d.client_adresse && <Meta Icon={MapPin} txt={d.client_adresse} />}
           </div>
-          <span style={{display:'inline-flex',alignItems:'center',background:`${s.color}1a`,color:s.color,fontSize:12,fontWeight:700,padding:'3px 11px',borderRadius:8}}>{d.type_intervention}</span>
-          <p style={{fontSize:12,color:'var(--text3)',marginTop:6,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{d.client_adresse}</p>
         </div>
-        {d.prix_estime && <span className="amount-green" style={{fontSize:20,flexShrink:0}}>{eur(d.prix_estime)}</span>}
+        <div style={{textAlign:'right',flexShrink:0}}>
+          {d.prix_estime ? <span className="amount-green" style={{fontSize:20}}>{eur(d.prix_estime)}</span> : null}
+          {enAttente && <p style={{fontSize:11,fontWeight:700,color:'var(--text3)',marginTop:3}}>En attente</p>}
+        </div>
       </div>
-      {d.client_description && <p style={{fontSize:12,color:'var(--text2)',background:'var(--surface2)',borderRadius:10,padding:'8px 11px',marginBottom:12}}>{d.client_description}</p>}
-      <div style={{display:'flex',gap:8}}>
-        <a href={`tel:${d.client_telephone}`} className="fab" style={{color:'var(--blue)'}}><Phone size={18} /></a>
-        <button onClick={onCreneaux} className="btn-primary" style={{flex:1,height:44,padding:'0 14px',fontSize:13}}><CalendarDays size={16}/>Proposer un créneau</button>
+      {d.client_description && (
+        <p style={{fontSize:12.5,color:'var(--text3)',fontStyle:'italic',borderLeft:'2px solid var(--border2)',paddingLeft:11,margin:'12px 0 0',lineHeight:1.5}}>{d.client_description}</p>
+      )}
+      <div style={{display:'flex',gap:8,marginTop:14}}>
+        <a href={`tel:${d.client_telephone}`} className="fab" style={{color:'var(--blue)'}} aria-label="Appeler"><Phone size={18} /></a>
+        <button onClick={onCreneaux} className="btn-primary" style={{flex:1,height:46,padding:'0 14px',fontSize:13}}><CalendarDays size={16}/>Proposer un créneau</button>
       </div>
     </div>
   )
 }
 
-function CardChantier({ d, onValider, validating, removing=false, highlight=false }: { d:Demande; onValider:()=>void; validating:boolean; removing?:boolean; highlight?:boolean }) {
+function CardChantier({ d, onValider, validating, removing=false }: { d:Demande; onValider:()=>void; validating:boolean; removing?:boolean; highlight?:boolean }) {
   const c = d.creneau_accepte
-  const s = svc(d.type_intervention)
   return (
-    <div className={`card card-client card-interactive ${removing?'card-validating':''}`} style={{padding:14}}>
-      {/* Heure (juste les chiffres), montant en haut à droite */}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:12}}>
-        {c ? <span style={{fontSize:15,fontWeight:700,color:'var(--text2)',letterSpacing:'-0.01em'}}>{formatHeure(c.heure_debut)} – {formatHeure(c.heure_fin)}</span> : <span/>}
+    <div className={`card card-client card-interactive ${removing?'card-validating':''}`} style={{padding:15}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:10}}>
+        {c ? <span style={{fontSize:14,fontWeight:700,color:'var(--text2)',letterSpacing:'-0.01em'}}>{formatHeure(c.heure_debut)} – {formatHeure(c.heure_fin)}</span> : <span/>}
         <span className="amount-green" style={{fontSize:22}}>{eur(d.prix_estime||0)}</span>
       </div>
-      <div style={{marginBottom:12}}>
-        {/* Nom client, puis métier + localisation côte à côte */}
-        <p style={{fontSize:16,fontWeight:700,marginBottom:6}}>{d.client_nom}</p>
-        <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-          <span style={{display:'inline-flex',alignItems:'center',background:`${s.color}1a`,color:s.color,fontSize:12,fontWeight:700,padding:'3px 11px',borderRadius:8}}>{d.type_intervention}</span>
-          <Meta Icon={MapPin} txt={d.client_adresse} />
-        </div>
+      <p style={{fontSize:16,fontWeight:700}}>{d.client_nom}</p>
+      <div style={{display:'flex',alignItems:'center',gap:10,marginTop:5,marginBottom:14,flexWrap:'wrap'}}>
+        <CatLabel type={d.type_intervention} />
+        {d.client_adresse && <Meta Icon={MapPin} txt={d.client_adresse} />}
       </div>
-      {/* Appel + Itinéraire discrets (icônes), Validé = seule action avec texte */}
       <div style={{display:'flex',gap:8}}>
-        <a href={`tel:${d.client_telephone}`} className="fab" style={{height:48,color:'var(--blue)'}}><Phone size={18} /></a>
-        <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.client_adresse)}&travelmode=driving`} target="_blank" rel="noreferrer" className="fab" style={{height:48,color:'var(--blue)'}}><MapPin size={18} /></a>
+        <a href={`tel:${d.client_telephone}`} className="fab" style={{height:48,color:'var(--blue)'}} aria-label="Appeler"><Phone size={18} /></a>
+        <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.client_adresse)}&travelmode=driving`} target="_blank" rel="noreferrer" className="fab" style={{height:48,color:'var(--blue)'}} aria-label="Itinéraire"><MapPin size={18} /></a>
         <button onClick={onValider} disabled={validating} className="btn-success" style={{flex:1,height:48,fontSize:15}}>
           {validating ? <span className="spinner spinner-w" /> : 'Validé'}
         </button>

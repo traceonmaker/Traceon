@@ -96,20 +96,6 @@ function MontantHero({ value }: { value:number }) {
   )
 }
 
-function useCountUp(target: number, duration = 900) {
-  const [val, setVal] = useState(0)
-  const prev = useRef(0)
-  useEffect(() => {
-    const start = prev.current, delta = target - start, t0 = performance.now()
-    const tick = (now: number) => {
-      const p = Math.min((now - t0) / duration, 1)
-      setVal(start + delta * (1 - Math.pow(1 - p, 3)))
-      if (p < 1) requestAnimationFrame(tick); else prev.current = target
-    }
-    requestAnimationFrame(tick)
-  }, [target])
-  return val
-}
 
 // Pliage repliable qui se MÉMORISE (survit aux changements d'onglet / rechargements)
 function useCollapse(key: string, defaultOpen: boolean) {
@@ -414,7 +400,6 @@ function Paywall({ artisan }: { artisan:Artisan }) {
 
 /* ───────── ACCUEIL ───────── */
 function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validating, removing, onCreneaux, onShare, onSupprimer, objectif }: any) {
-  const animEnc = useCountUp(encaisse)
   const prochain = prochainRDV(confirmes as Demande[])
   const obj = Number(objectif) || 0
   const atteint = obj > 0 && encaisse >= obj
@@ -446,7 +431,7 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:14}}>
             <div style={{minWidth:0}}>
               <p style={{fontSize:13,fontWeight:600,color:'rgba(255,255,255,0.9)',marginBottom:7}}>Encaissé ce mois</p>
-              <p style={{margin:0}}><MontantHero value={animEnc} /></p>
+              <p style={{margin:0}}><MontantHero value={encaisse} /></p>
               <p style={{fontSize:12.5,fontWeight:500,color:'rgba(255,255,255,0.6)',marginTop:8}}>
                 {atteint
                   ? <span style={{color:'rgba(255,255,255,0.92)',fontWeight:700}}>🎉 Objectif atteint</span>

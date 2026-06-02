@@ -1230,7 +1230,19 @@ function CardDemande({ d, i, onCreneaux }: { d:Demande; i:number; onCreneaux:()=
 function CardChantier({ d, onValider, onDelete, validating, removing=false }: { d:Demande; onValider:()=>void; onDelete?:()=>void; validating:boolean; removing?:boolean; highlight?:boolean }) {
   const c = d.creneau_accepte
   const [armDel, setArmDel] = useState(false)
-  const onTrash = () => { if (armDel) { onDelete?.(); return } haptic(8); setArmDel(true); setTimeout(()=>setArmDel(false), 3000) }
+  const onTrash = (e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    if (armDel) { onDelete?.(); setArmDel(false); return }
+    haptic(8); setArmDel(true)
+  }
+  // Cliquer ailleurs (ou attendre 3 s) annule la confirmation
+  useEffect(() => {
+    if (!armDel) return
+    const cancel = () => setArmDel(false)
+    const attach = setTimeout(() => document.addEventListener('click', cancel), 0)
+    const reset = setTimeout(() => setArmDel(false), 3000)
+    return () => { clearTimeout(attach); clearTimeout(reset); document.removeEventListener('click', cancel) }
+  }, [armDel])
   return (
    <div style={{ display:'grid', gridTemplateRows: removing ? '0fr' : '1fr', opacity: removing ? 0 : 1, transform: removing ? 'scale(.98)' : 'none', transition:'grid-template-rows .45s cubic-bezier(.4,0,.2,1), opacity .35s ease, transform .4s cubic-bezier(.4,0,.2,1)' }}>
     <div style={{ overflow:'hidden', minHeight:0 }}>

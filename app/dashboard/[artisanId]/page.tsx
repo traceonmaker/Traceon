@@ -174,6 +174,9 @@ export default function Dashboard() {
   const payes      = demandes.filter(d => d.statut === 'paye')
   const potentiel  = confirmes.reduce((s,d)=>s+(d.prix_estime||0),0)
   const encaisse   = payes.reduce((s,d)=>s+(d.prix_estime||0),0)
+  // Mise à jour optimiste : pendant la fenêtre d'annulation, le cash inclut déjà le chantier validé
+  const pendingPay = removing ? demandes.find(d=>d.id===removing && d.statut!=='paye') : null
+  const encaisseAffiche = encaisse + (pendingPay?.prix_estime || 0)
 
   function valider(id: string) {
     haptic([12,40,16])
@@ -295,7 +298,7 @@ export default function Dashboard() {
         </div>
 
         <div key={tab} className={`tab-pane ${dir>0?'fwd':'back'}`}>
-          {tab==='accueil'     && <Accueil nouvelles={nouvelles} encaisse={encaisse} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} onShare={copyLink} onSupprimer={supprimer} objectif={artisan.objectif_mensuel ?? 5000} />}
+          {tab==='accueil'     && <Accueil nouvelles={nouvelles} encaisse={encaisseAffiche} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} onShare={copyLink} onSupprimer={supprimer} objectif={artisan.objectif_mensuel ?? 5000} />}
           {tab==='planning'    && <Planning confirmes={confirmes} artisan={artisan} save={saveArtisan} />}
           {tab==='bilan'       && <Bilan payes={payes} demandes={demandes} encaisse={encaisse} />}
           {tab==='parametres'  && <Parametres artisan={artisan} save={saveArtisan} />}

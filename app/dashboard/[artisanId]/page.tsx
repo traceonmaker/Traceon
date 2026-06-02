@@ -137,6 +137,7 @@ export default function Dashboard() {
   const [linkCopied, setLinkCopied] = useState(false)
   const [toast, setToast] = useState<{msg:string; action?:{label:string; fn:()=>void}}|null>(null)
   const [celebrate, setCelebrate] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
   const [authed, setAuthed] = useState<boolean|null>(null)
   const undoRef = useRef<{id:string; timer:any}|null>(null)
   const router = useRouter()
@@ -230,6 +231,18 @@ export default function Dashboard() {
       setToast({ msg:'Enregistrement impossible' })
     }
   }
+  async function ajouterChantier(payload: any): Promise<boolean> {
+    try {
+      const r = await authedFetch('/api/chantier', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ artisan_id: artisan!.id, ...payload }) })
+      if (!r.ok) throw new Error()
+      setAddOpen(false); haptic(12); await load()
+      setToast({ msg:'Chantier ajouté' })
+      return true
+    } catch {
+      setToast({ msg:'Ajout impossible, réessaie' })
+      return false
+    }
+  }
   function copyLink() {
     navigator.clipboard.writeText(`${window.location.origin}/formulaire/${artisan!.id}`)
     setLinkCopied(true); haptic(8); setToast({ msg:'Lien client copié' })
@@ -318,6 +331,17 @@ export default function Dashboard() {
       </nav>
 
       {modal && <ModalCreneaux d={modal} artisan={artisan} confirmes={confirmes} onClose={()=>setModal(null)} onProposer={proposer} />}
+      {addOpen && <ModalAjout artisan={artisan} onClose={()=>setAddOpen(false)} onAjouter={ajouterChantier} />}
+
+      {(tab==='accueil' || tab==='planning') && (
+        <button onClick={()=>{ haptic(8); setAddOpen(true) }} aria-label="Ajouter un chantier"
+          style={{position:'fixed',right:18,bottom:84,zIndex:45,width:56,height:56,borderRadius:18,border:'none',cursor:'pointer',
+            background:'linear-gradient(180deg,#2a6af0,#1551d0)',color:'#fff',
+            boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 22px rgba(21,80,207,0.42)',
+            display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <Plus size={26} strokeWidth={2.5} />
+        </button>
+      )}
 
       {celebrate && (
         <div className="confetti">
@@ -765,8 +789,7 @@ function KPI({ label, value, Icon, glow }: { label:string; value:string; Icon:an
 
 /* ───────── RÉGLAGE APPARENCE (clair / auto / sombre) ───────── */
 function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>('system')
-  useEffect(() => { setTheme(getTheme()) }, [])
+  const [theme, setTheme] = useState<Theme>(() => getTheme())
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     const h = () => { if (getTheme() === 'system') applyTheme('system') }
@@ -1155,6 +1178,90 @@ function CardChantier({ d, onValider, validating, removing=false, highlight=fals
         <button onClick={onValider} disabled={validating} className="btn-success" style={{flex:1,height:48,fontSize:15}}>
           {validating ? <span className="spinner spinner-w" /> : 'Validé'}
         </button>
+      </div>
+    </div>
+  )
+}
+
+function ModalAjout({ artisan, onClose, onAjouter }: { artisan:Artisan; onClose:()=>void; onAjouter:(p:any)=>Promise<boolean> }) {
+  const types = (artisan.types_chantier || []) as TypeChantier[]
+  const [nom, setNom] = useState('')
+  const [tel, setTel] = useState('')
+  const [adresse, setAdresse] = useState('')
+  const [type, setType] = useState(types[0]?.type || 'Autre')
+  const [prix, setPrix] = useState<number>(types[0]?.prix_base || 0)
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [hd, setHd] = useState('08:00')
+  const [hf, setHf] = useState('12:00')
+  const [saving, setSaving] = useState(false)
+
+  function pickType(t: string) {
+    setType(t)
+    const tc = types.find(x => x.type === t)
+    if (tc) setPrix(tc.prix_base)
+  }
+  async function submit() {
+    if (!nom.trim()) return
+    setSaving(true)
+    const ok = await onAjouter({ client_nom: nom.trim(), client_telephone: tel, client_adresse: adresse, type_intervention: type, prix, date, heure_debut: hd, heure_fin: hf })
+    if (!ok) setSaving(false)
+  }
+
+  return (
+    <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:50,background:'rgba(8,14,30,0.5)',backdropFilter:'blur(6px)',display:'flex',alignItems:'flex-end'}}>
+      <div onClick={e=>e.stopPropagation()} className="a-slideUp" style={{width:'100%',maxWidth:480,margin:'0 auto',background:'var(--surface)',borderRadius:'26px 26px 0 0',padding:'12px 16px 32px',boxShadow:'var(--shadow-lg)',maxHeight:'92vh',overflowY:'auto'}}>
+        <div style={{width:36,height:4,background:'var(--border2)',borderRadius:2,margin:'0 auto 20px'}} />
+        <p style={{fontSize:18,fontWeight:800,letterSpacing:'-0.03em',marginBottom:4}}>Ajouter un chantier</p>
+        <p style={{fontSize:13,color:'var(--text3)',marginBottom:16}}>Un chantier obtenu par téléphone ou bouche-à-oreille.</p>
+
+        <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>Client</label>
+        <input value={nom} onChange={e=>setNom(e.target.value)} placeholder="Nom du client" className="input-field" style={{marginBottom:14}} />
+
+        <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:8}}>Type d'intervention</label>
+        <div style={{display:'flex',flexWrap:'wrap',gap:7,marginBottom:14}}>
+          {types.map(t => {
+            const on = type === t.type
+            return (
+              <button key={t.type} onClick={()=>pickType(t.type)} style={{padding:'8px 13px',borderRadius:11,fontSize:13,fontWeight:600,cursor:'pointer',transition:'all .15s',
+                background:on?'var(--blue)':'var(--surface2)',color:on?'#fff':'var(--text2)',border:`1px solid ${on?'var(--blue)':'var(--border)'}`}}>{t.type}</button>
+            )
+          })}
+        </div>
+
+        <div style={{display:'flex',gap:10,marginBottom:14}}>
+          <div style={{flex:1}}>
+            <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>Montant (€)</label>
+            <input type="number" value={prix} onChange={e=>setPrix(+e.target.value)} className="input-field" />
+          </div>
+          <div style={{flex:1}}>
+            <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>Date</label>
+            <input type="date" value={date} onChange={e=>setDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="input-field" />
+          </div>
+        </div>
+
+        <div style={{display:'flex',gap:10,marginBottom:14}}>
+          <div style={{flex:1}}>
+            <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>Début</label>
+            <input type="time" value={hd} onChange={e=>setHd(e.target.value)} className="input-field" />
+          </div>
+          <div style={{flex:1}}>
+            <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>Fin</label>
+            <input type="time" value={hf} onChange={e=>setHf(e.target.value)} className="input-field" />
+          </div>
+        </div>
+
+        <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>Téléphone <span style={{color:'var(--text3)',fontWeight:500}}>(optionnel)</span></label>
+        <input type="tel" value={tel} onChange={e=>setTel(e.target.value)} placeholder="+596 696 00 00 00" className="input-field" style={{marginBottom:14}} />
+
+        <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>Adresse <span style={{color:'var(--text3)',fontWeight:500}}>(optionnel)</span></label>
+        <input value={adresse} onChange={e=>setAdresse(e.target.value)} placeholder="Lieu du chantier" className="input-field" style={{marginBottom:20}} />
+
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={onClose} className="btn-ghost" style={{flex:1}}>Annuler</button>
+          <button onClick={submit} disabled={!nom.trim() || saving} className="btn-primary" style={{flex:1}}>
+            {saving ? <span className="spinner spinner-w" /> : <><Plus size={16}/>Ajouter</>}
+          </button>
+        </div>
       </div>
     </div>
   )

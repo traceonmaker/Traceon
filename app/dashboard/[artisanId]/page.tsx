@@ -519,7 +519,7 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
               <h2 className="section-title" style={{textTransform:'capitalize'}}>{g.label}</h2>
               <span style={{fontSize:12,fontWeight:700,color:'var(--text3)'}}>· {g.items.length} chantier{g.items.length>1?'s':''}</span>
             </div>
-            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            <div style={{display:'flex',flexDirection:'column'}}>
               {g.items.map((d:Demande)=><CardChantier key={d.id} d={d} onValider={()=>valider(d.id)} validating={validating===d.id} removing={removing===d.id} highlight={g.isToday} />)}
             </div>
           </div>
@@ -1204,7 +1204,9 @@ function CardDemande({ d, i, onCreneaux }: { d:Demande; i:number; onCreneaux:()=
 function CardChantier({ d, onValider, validating, removing=false }: { d:Demande; onValider:()=>void; validating:boolean; removing?:boolean; highlight?:boolean }) {
   const c = d.creneau_accepte
   return (
-    <div className={`card card-client card-interactive ${removing?'card-validating':''}`} style={{padding:15}}>
+   <div style={{ display:'grid', gridTemplateRows: removing ? '0fr' : '1fr', opacity: removing ? 0 : 1, transform: removing ? 'scale(.98)' : 'none', transition:'grid-template-rows .45s cubic-bezier(.4,0,.2,1), opacity .35s ease, transform .4s cubic-bezier(.4,0,.2,1)' }}>
+    <div style={{ overflow:'hidden', minHeight:0 }}>
+    <div className="card card-client card-interactive" style={{padding:15, marginBottom:10}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:10}}>
         {c ? <span style={{fontSize:14,fontWeight:700,color:'var(--text2)',letterSpacing:'-0.01em'}}>{formatHeure(c.heure_debut)} – {formatHeure(c.heure_fin)}</span> : <span/>}
         <span className="amount-green" style={{fontSize:22}}>{eur(d.prix_estime||0)}</span>
@@ -1222,6 +1224,8 @@ function CardChantier({ d, onValider, validating, removing=false }: { d:Demande;
         </button>
       </div>
     </div>
+    </div>
+   </div>
   )
 }
 

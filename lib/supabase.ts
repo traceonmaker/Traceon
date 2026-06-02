@@ -32,6 +32,8 @@ export type Artisan = {
   onboarding_complet: boolean
   preferences_creneaux: PreferencesCreneaux
   indisponibilites: Creneau[]
+  objectif_mensuel?: number
+  push_subscriptions?: any[]
 }
 
 // Préférence de moment de la journée par envergure de chantier

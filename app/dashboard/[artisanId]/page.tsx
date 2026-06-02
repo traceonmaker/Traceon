@@ -43,6 +43,23 @@ async function authedFetch(input: string, init: RequestInit = {}) {
   return fetch(input, { ...init, headers })
 }
 
+// Anneau de progression (cash vers objectif mensuel) — façon Activity Rings
+function Ring({ percent, size = 76 }: { percent: number; size?: number }) {
+  const stroke = 7
+  const r = (size - stroke) / 2
+  const c = 2 * Math.PI * r
+  const p = Math.max(0, Math.min(percent, 100))
+  const off = c - (p / 100) * c
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth={stroke} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#fff" strokeWidth={stroke} strokeLinecap="round"
+        strokeDasharray={c} strokeDashoffset={off} style={{ transition: 'stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)' }} />
+      <text x="50%" y="50%" dy="0.35em" textAnchor="middle" style={{ transform: 'rotate(90deg)', transformOrigin: 'center', fill: '#fff', fontSize: size*0.26, fontWeight: 800, letterSpacing: '-0.04em' }}>{Math.round(p)}%</text>
+    </svg>
+  )
+}
+
 // Prochain rendez-vous (chantier confirmé le plus proche, encore à venir)
 function prochainRDV(confirmes: Demande[]): Demande | null {
   const now = Date.now()
@@ -301,7 +318,7 @@ export default function Dashboard() {
         </div>
 
         <div key={tab} className={`tab-pane ${dir>0?'fwd':'back'}`}>
-          {tab==='accueil'     && <Accueil nouvelles={nouvelles} encaisse={encaisse} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} onShare={copyLink} />}
+          {tab==='accueil'     && <Accueil nouvelles={nouvelles} encaisse={encaisse} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} onShare={copyLink} objectif={artisan.objectif_mensuel ?? 5000} />}
           {tab==='planning'    && <Planning confirmes={confirmes} artisan={artisan} save={saveArtisan} />}
           {tab==='historique'  && <Historique payes={payes} encaisse={encaisse} />}
           {tab==='stats'       && <Stats payes={payes} demandes={demandes} encaisse={encaisse} />}
@@ -420,20 +437,29 @@ function Paywall({ artisan }: { artisan:Artisan }) {
 }
 
 /* ───────── ACCUEIL ───────── */
-function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validating, removing, onCreneaux, onShare }: any) {
+function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validating, removing, onCreneaux, onShare, objectif }: any) {
   const animEnc = useCountUp(encaisse)
   const prochain = prochainRDV(confirmes as Demande[])
+  const obj = Number(objectif) || 0
+  const pct = obj > 0 ? (animEnc / obj) * 100 : 0
+  const atteint = obj > 0 && encaisse >= obj
   return (
     <div>
       {/* Hero — reste fixe au défilement */}
       <div className="hero-card a-scaleIn" style={{padding:'22px 22px 20px',marginBottom:16}}>
         <div className="hero-shine" />
         <div style={{position:'relative',zIndex:1}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-            <div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:14}}>
+            <div style={{minWidth:0}}>
               <p style={{fontSize:13,fontWeight:600,color:'rgba(255,255,255,0.9)',marginBottom:7}}>Encaissé ce mois</p>
               <p style={{margin:0}}><MontantHero value={animEnc} /></p>
+              <p style={{fontSize:12.5,fontWeight:600,color:'rgba(255,255,255,0.85)',marginTop:8,display:'inline-flex',alignItems:'center',gap:6}}>
+                {atteint
+                  ? <span style={{background:'rgba(255,255,255,0.2)',borderRadius:8,padding:'3px 9px',fontWeight:800}}>🎉 Objectif atteint</span>
+                  : <>Objectif <b style={{color:'#fff'}}>{eur(obj)}</b></>}
+              </p>
             </div>
+            {obj > 0 && <Ring percent={pct} />}
           </div>
           <div style={{display:'flex',gap:14,marginTop:20}}>
             <div className="hero-stat" style={{flex:1,padding:'13px 15px',border:'1px solid rgba(255,255,255,0.28)',background:'rgba(255,255,255,0.14)',backdropFilter:'blur(8px)',boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 6px 16px rgba(5,9,31,0.2)'}}>
@@ -840,6 +866,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
     conditions_paiement: artisan.conditions_paiement||'', mentions_legales: artisan.mentions_legales||'',
     cgv: artisan.cgv||'', rgpd: artisan.rgpd||'',
     preferences_creneaux: artisan.preferences_creneaux || { grand:'matin', moyen:'flexible', petit:'apres-midi' },
+    objectif_mensuel: artisan.objectif_mensuel ?? 5000,
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -862,6 +889,14 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       <ThemeToggle />
 
       <Section title="Notifications" defaultOpen><PushSetup artisanId={artisan.id} /></Section>
+
+      <Section title="Objectif mensuel" defaultOpen>
+        <p style={{fontSize:13,color:'var(--text2)',marginBottom:10,lineHeight:1.5}}>Le montant à atteindre ce mois — l'anneau de progression se remplit à mesure que vous encaissez.</p>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <input type="number" value={f.objectif_mensuel as number} onChange={e=>set('objectif_mensuel', +e.target.value)} className="input-field" style={{maxWidth:160}} />
+          <span style={{fontSize:14,fontWeight:700,color:'var(--text2)'}}>€ / mois</span>
+        </div>
+      </Section>
 
       {/* Entreprise */}
       <Section title="Entreprise">

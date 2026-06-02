@@ -8,10 +8,16 @@ export default function AppleIcon() {
     (
       <div style={{
         width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'linear-gradient(135deg, #1565ff 0%, #0a47d8 55%, #042aa0 100%)',
-        color: '#fff', fontSize: 110, fontWeight: 800,
+        background: 'linear-gradient(145deg, #2a6af0 0%, #1550cf 55%, #0c2f7a 100%)',
       }}>
-        T
+        <div style={{
+          width: 46, height: 86,
+          borderRight: '16px solid #ffffff',
+          borderBottom: '16px solid #ffffff',
+          borderBottomRightRadius: 4,
+          transform: 'rotate(45deg)',
+          marginTop: -12,
+        }} />
       </div>
     ),
     { ...size }

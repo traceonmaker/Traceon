@@ -183,7 +183,7 @@ export default function Dashboard() {
   // toasts de confirmation (sans action) → disparaissent seuls
   useEffect(() => { if (toast && !toast.action) { const t = setTimeout(()=>setToast(null), 2600); return ()=>clearTimeout(t) } }, [toast])
 
-  const nouvelles  = demandes.filter(d => ['nouvelle','devis_envoye','creneau_propose'].includes(d.statut))
+  const nouvelles  = demandes.filter(d => ['nouvelle','devis_envoye','creneau_propose'].includes(d.statut)).sort((a,b)=> new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
   const confirmes  = demandes.filter(d => ['confirme','en_cours'].includes(d.statut)).sort((a,b)=>new Date(a.date_chantier||0).getTime()-new Date(b.date_chantier||0).getTime())
   const payes      = demandes.filter(d => d.statut === 'paye')
   const potentiel  = confirmes.reduce((s,d)=>s+(d.prix_estime||0),0)

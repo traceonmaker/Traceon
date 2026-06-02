@@ -412,7 +412,8 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
   position: relative;
 }
 .nav-item.on .nav-ico {
-  background: var(--blue-dim);
+  background: var(--blue);
+  box-shadow: 0 2px 8px rgba(21,80,207,0.35);
 }
 .nav-item:active { transform: scale(.92); }
 

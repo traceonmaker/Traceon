@@ -11,7 +11,7 @@ import {
   Home, CalendarDays, Clock, BarChart3, Settings, Phone, MapPin, Check,
   Link2, Plus, Trash2, Droplet, Zap, Snowflake, Hammer, Paintbrush, Wrench,
   ChevronLeft, ChevronRight, TrendingUp, Save, Upload, Copy,
-  Euro, Briefcase, Receipt, Percent, FileText, Download, Sun, Moon, Monitor
+  Euro, Briefcase, Receipt, Percent, FileText, Download, Sun, Moon, Monitor, Target
 } from 'lucide-react'
 import InstallPrompt from '@/app/components/InstallPrompt'
 import PushSetup from '@/app/components/PushSetup'
@@ -55,7 +55,6 @@ function Ring({ percent, size = 76 }: { percent: number; size?: number }) {
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth={stroke} />
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#fff" strokeWidth={stroke} strokeLinecap="round"
         strokeDasharray={c} strokeDashoffset={off} style={{ transition: 'stroke-dashoffset .9s cubic-bezier(.22,1,.36,1)' }} />
-      <text x="50%" y="50%" dy="0.35em" textAnchor="middle" style={{ transform: 'rotate(90deg)', transformOrigin: 'center', fill: '#fff', fontSize: size*0.26, fontWeight: 800, letterSpacing: '-0.04em' }}>{Math.round(p)}%</text>
     </svg>
   )
 }
@@ -260,6 +259,15 @@ export default function Dashboard() {
       return false
     }
   }
+  async function supprimer(id: string) {
+    try {
+      const r = await authedFetch(`/api/demandes/${id}`, { method:'DELETE' })
+      if (!r.ok) throw new Error()
+      haptic(12); await load(); setToast({ msg:'Chantier supprimé' })
+    } catch {
+      setToast({ msg:'Suppression impossible' })
+    }
+  }
   function copyLink() {
     navigator.clipboard.writeText(`${window.location.origin}/formulaire/${artisan!.id}`)
     setLinkCopied(true); haptic(8); setToast({ msg:'Lien client copié' })
@@ -318,7 +326,7 @@ export default function Dashboard() {
         </div>
 
         <div key={tab} className={`tab-pane ${dir>0?'fwd':'back'}`}>
-          {tab==='accueil'     && <Accueil nouvelles={nouvelles} encaisse={encaisse} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} onShare={copyLink} objectif={artisan.objectif_mensuel ?? 5000} />}
+          {tab==='accueil'     && <Accueil nouvelles={nouvelles} encaisse={encaisse} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} onShare={copyLink} onSupprimer={supprimer} objectif={artisan.objectif_mensuel ?? 5000} />}
           {tab==='planning'    && <Planning confirmes={confirmes} artisan={artisan} save={saveArtisan} />}
           {tab==='historique'  && <Historique payes={payes} encaisse={encaisse} />}
           {tab==='stats'       && <Stats payes={payes} demandes={demandes} encaisse={encaisse} />}
@@ -338,8 +346,8 @@ export default function Dashboard() {
           return (
             <button key={t.k} onClick={()=>{ setDir(TABS.indexOf(t.k) >= TABS.indexOf(tab) ? 1 : -1); haptic(6); setTab(t.k) }} className={`nav-item ${on?'on':''}`}>
               <div className="nav-ico">
-                <t.Icon size={21} color={on?'var(--blue)':'#94a3b8'} strokeWidth={on?2.5:2} />
-                {t.n>0 && <span style={{position:'absolute',top:-1,right:3,background:'#ff3b30',color:'#fff',fontSize:9,fontWeight:700,minWidth:15,height:15,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 3px',border:'1.5px solid #fff'}}>{t.n}</span>}
+                <t.Icon size={21} color={on?'#fff':'#94a3b8'} strokeWidth={on?2.5:2} />
+                {t.n>0 && <span style={{position:'absolute',top:-2,right:1,background:'#fff',color:'#0c1424',fontSize:9.5,fontWeight:800,minWidth:16,height:16,borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 3px',border:'1.5px solid var(--border2)',boxShadow:'0 1px 3px rgba(0,0,0,0.18)'}}>{t.n}</span>}
               </div>
               <span>{t.l}</span>
             </button>
@@ -437,16 +445,31 @@ function Paywall({ artisan }: { artisan:Artisan }) {
 }
 
 /* ───────── ACCUEIL ───────── */
-function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validating, removing, onCreneaux, onShare, objectif }: any) {
+function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validating, removing, onCreneaux, onShare, onSupprimer, objectif }: any) {
   const animEnc = useCountUp(encaisse)
   const prochain = prochainRDV(confirmes as Demande[])
   const obj = Number(objectif) || 0
   const pct = obj > 0 ? (animEnc / obj) * 100 : 0
   const atteint = obj > 0 && encaisse >= obj
+  const reste = Math.max(obj - encaisse, 0)
   const todayList = (confirmes as Demande[]).filter(d => d.date_chantier && isToday(d.date_chantier!))
   const startTomorrow = new Date(); startTomorrow.setHours(0,0,0,0); startTomorrow.setDate(startTomorrow.getDate()+1)
   const futureList = (confirmes as Demande[]).filter(d => d.date_chantier && new Date(d.date_chantier!).getTime() >= startTomorrow.getTime())
   const [vue, setVue] = useState<'a_traiter'|'aujourdhui'|'avenir'>(() => todayList.length ? 'aujourdhui' : (nouvelles.length ? 'a_traiter' : 'aujourdhui'))
+  const [segDir, setSegDir] = useState(1)
+  const touchRef = useRef<{x:number;y:number}|null>(null)
+  const VUES = ['a_traiter','aujourdhui','avenir'] as const
+  const goVue = (k: typeof VUES[number]) => { setSegDir(VUES.indexOf(k) >= VUES.indexOf(vue) ? 1 : -1); haptic(5); setVue(k) }
+  const onSwipeEnd = (e: React.TouchEvent) => {
+    const t = touchRef.current; touchRef.current = null
+    if (!t) return
+    const dx = e.changedTouches[0].clientX - t.x, dy = e.changedTouches[0].clientY - t.y
+    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      const i = VUES.indexOf(vue)
+      if (dx < 0 && i < VUES.length - 1) goVue(VUES[i + 1])
+      else if (dx > 0 && i > 0) goVue(VUES[i - 1])
+    }
+  }
   return (
     <div>
       {/* Hero — reste fixe au défilement */}
@@ -457,13 +480,20 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
             <div style={{minWidth:0}}>
               <p style={{fontSize:13,fontWeight:600,color:'rgba(255,255,255,0.9)',marginBottom:7}}>Encaissé ce mois</p>
               <p style={{margin:0}}><MontantHero value={animEnc} /></p>
-              <p style={{fontSize:12.5,fontWeight:600,color:'rgba(255,255,255,0.85)',marginTop:8,display:'inline-flex',alignItems:'center',gap:6}}>
+              <p style={{fontSize:12.5,fontWeight:500,color:'rgba(255,255,255,0.6)',marginTop:8}}>
                 {atteint
-                  ? <span style={{background:'rgba(255,255,255,0.2)',borderRadius:8,padding:'3px 9px',fontWeight:800}}>🎉 Objectif atteint</span>
-                  : <>Objectif <b style={{color:'#fff'}}>{eur(obj)}</b></>}
+                  ? <span style={{color:'rgba(255,255,255,0.92)',fontWeight:700}}>🎉 Objectif atteint</span>
+                  : <>Plus que <b style={{color:'rgba(255,255,255,0.85)',fontWeight:700}}>{eur(reste)}</b> · objectif {eur(obj)}</>}
               </p>
             </div>
-            {obj > 0 && <Ring percent={pct} />}
+            {obj > 0 && (
+              <div style={{position:'relative',width:76,height:76,flexShrink:0}}>
+                <Ring percent={pct} />
+                <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  {atteint ? <Check size={26} color="#fff" strokeWidth={3} /> : <Target size={22} color="rgba(255,255,255,0.92)" />}
+                </div>
+              </div>
+            )}
           </div>
           <div style={{display:'flex',gap:14,marginTop:20}}>
             <div className="hero-stat" style={{flex:1,padding:'13px 15px',border:'1px solid rgba(255,255,255,0.28)',background:'rgba(255,255,255,0.14)',backdropFilter:'blur(8px)',boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 6px 16px rgba(5,9,31,0.2)'}}>
@@ -506,18 +536,20 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
             ] as const).map(s => {
               const on = vue === s.k
               return (
-                <button key={s.k} onClick={()=>{ haptic(5); setVue(s.k) }}
+                <button key={s.k} onClick={()=>goVue(s.k)}
                   style={{flex:1,padding:'9px 4px',borderRadius:10,border:'none',cursor:'pointer',fontSize:12.5,fontWeight:700,letterSpacing:'-0.01em',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5,
                     transition:'background .2s, color .2s, box-shadow .2s',
                     background:on?'var(--surface)':'transparent',color:on?'var(--text)':'var(--text3)',boxShadow:on?'0 1px 3px rgba(15,23,42,0.12)':'none'}}>
                   {s.label}
-                  {s.count>0 && <span style={{fontSize:11,fontWeight:800,minWidth:17,height:17,padding:'0 5px',borderRadius:9,display:'inline-flex',alignItems:'center',justifyContent:'center',background:on?'var(--blue)':'var(--border2)',color:on?'#fff':'var(--text3)'}}>{s.count}</span>}
+                  {s.count>0 && <span style={{fontSize:11,fontWeight:800,minWidth:18,height:18,padding:'0 5px',borderRadius:9,display:'inline-flex',alignItems:'center',justifyContent:'center',background:'#fff',color:'#0c1424',border:'1px solid rgba(0,0,0,0.10)',boxShadow:'0 1px 2px rgba(0,0,0,0.08)'}}>{s.count}</span>}
                 </button>
               )
             })}
           </div>
 
-          <div key={vue} className="tab-pane fwd">
+          <div key={vue} className={`tab-pane ${segDir>0?'fwd':'back'}`}
+            onTouchStart={e=>{ touchRef.current = { x:e.touches[0].clientX, y:e.touches[0].clientY } }}
+            onTouchEnd={onSwipeEnd}>
             {vue==='a_traiter' && (
               nouvelles.length
                 ? <div style={{display:'flex',flexDirection:'column',gap:10}}>{nouvelles.map((d:Demande,i:number)=><CardDemande key={d.id} d={d} i={i} onCreneaux={()=>onCreneaux(d)} />)}</div>
@@ -525,7 +557,7 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
             )}
             {vue==='aujourdhui' && (
               todayList.length
-                ? <div style={{display:'flex',flexDirection:'column'}}>{todayList.map((d:Demande)=><CardChantier key={d.id} d={d} onValider={()=>valider(d.id)} validating={validating===d.id} removing={removing===d.id} />)}</div>
+                ? <div style={{display:'flex',flexDirection:'column'}}>{todayList.map((d:Demande)=><CardChantier key={d.id} d={d} onValider={()=>valider(d.id)} onDelete={()=>onSupprimer(d.id)} validating={validating===d.id} removing={removing===d.id} />)}</div>
                 : <Empty Icon={CalendarDays} title="Rien aujourd'hui" sub="Aucun chantier prévu aujourd'hui." />
             )}
             {vue==='avenir' && (() => {
@@ -544,7 +576,7 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
                     <span style={{fontSize:12,fontWeight:700,color:'var(--text3)'}}>· {g.items.length}</span>
                   </div>
                   <div style={{display:'flex',flexDirection:'column'}}>
-                    {g.items.map((d:Demande)=><CardChantier key={d.id} d={d} onValider={()=>valider(d.id)} validating={validating===d.id} removing={removing===d.id} />)}
+                    {g.items.map((d:Demande)=><CardChantier key={d.id} d={d} onValider={()=>valider(d.id)} onDelete={()=>onSupprimer(d.id)} validating={validating===d.id} removing={removing===d.id} />)}
                   </div>
                 </div>
               ))
@@ -1220,8 +1252,10 @@ function CardDemande({ d, i, onCreneaux }: { d:Demande; i:number; onCreneaux:()=
   )
 }
 
-function CardChantier({ d, onValider, validating, removing=false }: { d:Demande; onValider:()=>void; validating:boolean; removing?:boolean; highlight?:boolean }) {
+function CardChantier({ d, onValider, onDelete, validating, removing=false }: { d:Demande; onValider:()=>void; onDelete?:()=>void; validating:boolean; removing?:boolean; highlight?:boolean }) {
   const c = d.creneau_accepte
+  const [armDel, setArmDel] = useState(false)
+  const onTrash = () => { if (armDel) { onDelete?.(); return } haptic(8); setArmDel(true); setTimeout(()=>setArmDel(false), 3000) }
   return (
    <div style={{ display:'grid', gridTemplateRows: removing ? '0fr' : '1fr', opacity: removing ? 0 : 1, transform: removing ? 'scale(.98)' : 'none', transition:'grid-template-rows .45s cubic-bezier(.4,0,.2,1), opacity .35s ease, transform .4s cubic-bezier(.4,0,.2,1)' }}>
     <div style={{ overflow:'hidden', minHeight:0 }}>
@@ -1236,6 +1270,9 @@ function CardChantier({ d, onValider, validating, removing=false }: { d:Demande;
         {d.client_adresse && <Meta Icon={MapPin} txt={d.client_adresse} />}
       </div>
       <div style={{display:'flex',gap:8}}>
+        {armDel
+          ? <button onClick={onTrash} style={{flex:'0 0 auto',height:48,padding:'0 14px',borderRadius:14,border:'none',cursor:'pointer',fontSize:13,fontWeight:700,color:'#fff',display:'inline-flex',alignItems:'center',gap:6,background:'linear-gradient(180deg,#ef4444,#dc2626)',boxShadow:'0 4px 14px rgba(220,38,38,0.28)'}}><Trash2 size={16}/>Confirmer</button>
+          : <button onClick={onTrash} className="fab" style={{height:48,color:'var(--text3)'}} aria-label="Supprimer"><Trash2 size={18} /></button>}
         <a href={`tel:${d.client_telephone}`} className="fab" style={{height:48,color:'var(--blue)'}} aria-label="Appeler"><Phone size={18} /></a>
         <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.client_adresse)}&travelmode=driving`} target="_blank" rel="noreferrer" className="fab" style={{height:48,color:'var(--blue)'}} aria-label="Itinéraire"><MapPin size={18} /></a>
         <button onClick={onValider} disabled={validating} className="btn-success" style={{flex:1,height:48,fontSize:15}}>

@@ -16,8 +16,8 @@ import {
 import InstallPrompt from '@/app/components/InstallPrompt'
 import PushSetup from '@/app/components/PushSetup'
 
-type Tab = 'accueil'|'planning'|'historique'|'stats'|'parametres'
-const TABS: Tab[] = ['accueil','planning','historique','stats','parametres']
+type Tab = 'accueil'|'planning'|'bilan'|'parametres'
+const TABS: Tab[] = ['accueil','planning','bilan','parametres']
 
 const SVC: Record<string,{Icon:any;color:string}> = {
   'Plomberie':     { Icon:Droplet,   color:'#2563eb' },
@@ -312,8 +312,7 @@ export default function Dashboard() {
         <div key={tab} className={`tab-pane ${dir>0?'fwd':'back'}`}>
           {tab==='accueil'     && <Accueil nouvelles={nouvelles} encaisse={encaisse} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} onShare={copyLink} onSupprimer={supprimer} objectif={artisan.objectif_mensuel ?? 5000} />}
           {tab==='planning'    && <Planning confirmes={confirmes} artisan={artisan} save={saveArtisan} />}
-          {tab==='historique'  && <Historique payes={payes} encaisse={encaisse} />}
-          {tab==='stats'       && <Stats payes={payes} demandes={demandes} encaisse={encaisse} />}
+          {tab==='bilan'       && <Bilan payes={payes} demandes={demandes} encaisse={encaisse} />}
           {tab==='parametres'  && <Parametres artisan={artisan} save={saveArtisan} />}
         </div>
       </div>
@@ -322,8 +321,7 @@ export default function Dashboard() {
         {([
           { k:'accueil',    Icon:Home,        l:'Accueil',  n:nouvelles.length },
           { k:'planning',   Icon:CalendarDays,l:'Planning', n:0 },
-          { k:'historique', Icon:Clock,       l:'Historique',n:0 },
-          { k:'stats',      Icon:BarChart3,   l:'Stats',    n:0 },
+          { k:'bilan',      Icon:BarChart3,   l:'Bilan',    n:0 },
           { k:'parametres', Icon:Settings,    l:'Réglages', n:0 },
         ] as const).map(t => {
           const on = tab===t.k
@@ -569,6 +567,9 @@ function Planning({ confirmes, artisan, save }: { confirmes:Demande[]; artisan:A
   const [bloquer, setBloquer] = useState<string|null>(null) // date ISO en cours de blocage
   const [bDebut, setBDebut] = useState('08:00')
   const [bFin, setBFin] = useState('12:00')
+  const [weekDir, setWeekDir] = useState(1)
+  const touchRef = useRef<{x:number;y:number}|null>(null)
+  const changeWeek = (delta:number) => { setWeekDir(delta>0?1:-1); haptic(5); setWeekOffset(w=>w+delta) }
   const base = new Date(); base.setHours(0,0,0,0)
   const monday = new Date(base); monday.setDate(base.getDate() - ((base.getDay()+6)%7) + weekOffset*7)
   const days = Array.from({length:7},(_,i)=>{ const dd=new Date(monday); dd.setDate(monday.getDate()+i); return dd })
@@ -593,14 +594,17 @@ function Planning({ confirmes, artisan, save }: { confirmes:Demande[]; artisan:A
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
         <SectionTitle title="Planning" />
         <div style={{display:'flex',alignItems:'center',gap:6}}>
-          <button onClick={()=>setWeekOffset(w=>w-1)} className="fab" style={{width:34,height:34,borderRadius:10}}><ChevronLeft size={16}/></button>
+          <button onClick={()=>changeWeek(-1)} className="fab" style={{width:34,height:34,borderRadius:10}}><ChevronLeft size={16}/></button>
           <span style={{fontSize:12,fontWeight:600,color:'var(--text2)',minWidth:90,textAlign:'center'}}>
             {weekOffset===0?'Cette semaine':monday.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}
           </span>
-          <button onClick={()=>setWeekOffset(w=>w+1)} className="fab" style={{width:34,height:34,borderRadius:10}}><ChevronRight size={16}/></button>
+          <button onClick={()=>changeWeek(1)} className="fab" style={{width:34,height:34,borderRadius:10}}><ChevronRight size={16}/></button>
         </div>
       </div>
 
+      <div key={weekOffset} className={`tab-pane ${weekDir>0?'fwd':'back'}`}
+        onTouchStart={e=>{ touchRef.current = { x:e.touches[0].clientX, y:e.touches[0].clientY } }}
+        onTouchEnd={e=>{ const t=touchRef.current; touchRef.current=null; if(!t) return; const dx=e.changedTouches[0].clientX-t.x, dy=e.changedTouches[0].clientY-t.y; if(Math.abs(dx)>48 && Math.abs(dx)>Math.abs(dy)*1.5){ changeWeek(dx<0?1:-1) } }}>
       <div className="card" style={{padding:'4px 0',overflow:'hidden'}}>
         {days.map((day,di)=>{
           const slots = slotsFor(day)
@@ -649,6 +653,7 @@ function Planning({ confirmes, artisan, save }: { confirmes:Demande[]; artisan:A
           )
         })}
       </div>
+      </div>
 
       <div style={{display:'flex',alignItems:'center',gap:14,marginTop:12,justifyContent:'center'}}>
         <span style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text3)'}}><span style={{width:10,height:10,borderRadius:3,background:'var(--blue)'}}/>Chantier</span>
@@ -660,6 +665,40 @@ function Planning({ confirmes, artisan, save }: { confirmes:Demande[]; artisan:A
 }
 
 /* ───────── HISTORIQUE ───────── */
+/* ───────── BILAN (Historique + Stats fusionnés) ───────── */
+function Bilan({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demande[]; encaisse:number }) {
+  const [sub, setSub] = useState<'historique'|'stats'>('historique')
+  const [dir, setDir] = useState(1)
+  const touchRef = useRef<{x:number;y:number}|null>(null)
+  const go = (k:'historique'|'stats') => { setDir(k==='stats'?1:-1); haptic(5); setSub(k) }
+  const onEnd = (e: React.TouchEvent) => {
+    const t = touchRef.current; touchRef.current = null; if (!t) return
+    const dx = e.changedTouches[0].clientX - t.x, dy = e.changedTouches[0].clientY - t.y
+    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) { if (dx < 0) go('stats'); else go('historique') }
+  }
+  const segs = [{ k:'historique', label:'Historique', count:payes.length }, { k:'stats', label:'Stats', count:0 }] as const
+  return (
+    <div>
+      <div style={{display:'flex',gap:4,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:14,padding:4,marginBottom:16}}>
+        {segs.map(s => {
+          const on = sub === s.k
+          return (
+            <button key={s.k} onClick={()=>go(s.k)} style={{flex:1,padding:'9px 4px',borderRadius:10,border:'none',cursor:'pointer',fontSize:12.5,fontWeight:700,letterSpacing:'-0.01em',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5,transition:'background .2s, color .2s, box-shadow .2s',background:on?'var(--surface)':'transparent',color:on?'var(--text)':'var(--text3)',boxShadow:on?'0 1px 3px rgba(15,23,42,0.12)':'none'}}>
+              {s.label}
+              {s.count>0 && <span style={{fontSize:11,fontWeight:800,minWidth:18,height:18,padding:'0 5px',borderRadius:9,display:'inline-flex',alignItems:'center',justifyContent:'center',background:'#fff',color:'#0c1424',border:'1px solid rgba(0,0,0,0.10)',boxShadow:'0 1px 2px rgba(0,0,0,0.08)'}}>{s.count}</span>}
+            </button>
+          )
+        })}
+      </div>
+      <div key={sub} className={`tab-pane ${dir>0?'fwd':'back'}`}
+        onTouchStart={e=>{ touchRef.current = { x:e.touches[0].clientX, y:e.touches[0].clientY } }} onTouchEnd={onEnd}>
+        {sub==='historique' && <Historique payes={payes} encaisse={encaisse} />}
+        {sub==='stats' && <Stats payes={payes} demandes={demandes} encaisse={encaisse} />}
+      </div>
+    </div>
+  )
+}
+
 function Historique({ payes, encaisse }: { payes:Demande[]; encaisse:number }) {
   // Regroupe par mois (éventail), du plus récent au plus ancien ; à l'intérieur, ordre alphabétique
   const groups: Record<string,{ ts:number; items:Demande[] }> = {}
@@ -1247,11 +1286,11 @@ function CardChantier({ d, onValider, onDelete, validating, removing=false }: { 
    <div style={{ display:'grid', gridTemplateRows: removing ? '0fr' : '1fr', opacity: removing ? 0 : 1, transform: removing ? 'scale(.98)' : 'none', transition:'grid-template-rows .45s cubic-bezier(.4,0,.2,1), opacity .35s ease, transform .4s cubic-bezier(.4,0,.2,1)' }}>
     <div style={{ overflow:'hidden', minHeight:0 }}>
     <div className="card card-client card-interactive" style={{padding:15, marginBottom:10}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginBottom:10}}>
-        {c ? <span style={{fontSize:14,fontWeight:700,color:'var(--text2)',letterSpacing:'-0.01em'}}>{formatHeure(c.heure_debut)} – {formatHeure(c.heure_fin)}</span> : <span/>}
-        <span className="amount-green" style={{fontSize:22}}>{eur(d.prix_estime||0)}</span>
+      {c && <p style={{fontSize:14,fontWeight:700,color:'var(--text2)',letterSpacing:'-0.01em',marginBottom:8}}>{formatHeure(c.heure_debut)} – {formatHeure(c.heure_fin)}</p>}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+        <p style={{fontSize:16,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{d.client_nom}</p>
+        <span className="amount-green" style={{fontSize:22,flexShrink:0}}>{eur(d.prix_estime||0)}</span>
       </div>
-      <p style={{fontSize:16,fontWeight:700}}>{d.client_nom}</p>
       <div style={{display:'flex',alignItems:'center',gap:10,marginTop:5,marginBottom:14,flexWrap:'wrap'}}>
         <CatLabel type={d.type_intervention} />
         {d.client_adresse && <Meta Icon={MapPin} txt={d.client_adresse} />}

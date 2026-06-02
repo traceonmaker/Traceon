@@ -486,7 +486,7 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
           <button onClick={onShare} className="btn-primary" style={{width:'auto',padding:'13px 22px',margin:'0 auto'}}><Link2 size={17}/>Partager mon lien client</button>
         </div>
       ) : (
-        <div onTouchStart={e=>{ touchRef.current = { x:e.touches[0].clientX, y:e.touches[0].clientY } }} onTouchEnd={onSwipeEnd} style={{minHeight:'56vh'}}>
+        <div onTouchStart={e=>{ touchRef.current = { x:e.touches[0].clientX, y:e.touches[0].clientY } }} onTouchEnd={onSwipeEnd} style={{minHeight:'56vh',touchAction:'pan-y'}}>
           <div style={{display:'flex',gap:4,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:14,padding:4,marginBottom:10}}>
             {([
               { k:'a_traiter',  label:'À traiter',    count: nouvelles.length },
@@ -587,7 +587,7 @@ function Planning({ confirmes, artisan, save }: { confirmes:Demande[]; artisan:A
         </div>
       </div>
 
-      <div key={weekOffset} className={`tab-pane ${weekDir>0?'fwd':'back'}`}
+      <div key={weekOffset} className={`tab-pane ${weekDir>0?'fwd':'back'}`} style={{touchAction:'pan-y'}}
         onTouchStart={e=>{ touchRef.current = { x:e.touches[0].clientX, y:e.touches[0].clientY } }}
         onTouchEnd={e=>{ const t=touchRef.current; touchRef.current=null; if(!t) return; const dx=e.changedTouches[0].clientX-t.x, dy=e.changedTouches[0].clientY-t.y; if(Math.abs(dx)>48 && Math.abs(dx)>Math.abs(dy)*1.5){ changeWeek(dx<0?1:-1) } }}>
       <div className="card" style={{padding:'4px 0',overflow:'hidden'}}>
@@ -663,7 +663,7 @@ function Bilan({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demand
   }
   const segs = [{ k:'historique', label:'Historique', count:payes.length }, { k:'stats', label:'Stats', count:0 }] as const
   return (
-    <div onTouchStart={e=>{ touchRef.current = { x:e.touches[0].clientX, y:e.touches[0].clientY } }} onTouchEnd={onEnd} style={{minHeight:'72vh'}}>
+    <div onTouchStart={e=>{ touchRef.current = { x:e.touches[0].clientX, y:e.touches[0].clientY } }} onTouchEnd={onEnd} style={{minHeight:'72vh',touchAction:'pan-y'}}>
       <div style={{display:'flex',gap:4,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:14,padding:4,marginBottom:10}}>
         {segs.map(s => {
           const on = sub === s.k

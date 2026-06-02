@@ -443,6 +443,10 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
   const obj = Number(objectif) || 0
   const pct = obj > 0 ? (animEnc / obj) * 100 : 0
   const atteint = obj > 0 && encaisse >= obj
+  const todayList = (confirmes as Demande[]).filter(d => d.date_chantier && isToday(d.date_chantier!))
+  const startTomorrow = new Date(); startTomorrow.setHours(0,0,0,0); startTomorrow.setDate(startTomorrow.getDate()+1)
+  const futureList = (confirmes as Demande[]).filter(d => d.date_chantier && new Date(d.date_chantier!).getTime() >= startTomorrow.getTime())
+  const [vue, setVue] = useState<'a_traiter'|'aujourdhui'|'avenir'>(() => todayList.length ? 'aujourdhui' : (nouvelles.length ? 'a_traiter' : 'aujourdhui'))
   return (
     <div>
       {/* Hero — reste fixe au défilement */}
@@ -484,55 +488,70 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
         </div>
       </div>
 
-      {/* Chantiers confirmés d'abord — l'agenda du patron */}
-      {(() => {
-        const list = (confirmes as Demande[]).filter(d => d.date_chantier)
-        if (list.length === 0) {
-          if (nouvelles.length === 0) {
-            return (
-              <div style={{textAlign:'center',padding:'40px 14px'}} className="a-fadeIn">
-                <div className="icon-tile" style={{width:58,height:58,borderRadius:16,background:'var(--blue-dim)',border:'1px solid var(--blue-mid)',margin:'0 auto 16px'}}><Link2 size={24} color="var(--blue)" /></div>
-                <p style={{fontSize:16,fontWeight:700,marginBottom:5}}>Prêt à recevoir vos demandes</p>
-                <p style={{fontSize:13,color:'var(--text3)',maxWidth:280,margin:'0 auto 18px',lineHeight:1.5}}>Partagez votre lien client : chaque demande arrivera directement ici.</p>
-                <button onClick={onShare} className="btn-primary" style={{width:'auto',padding:'13px 22px',margin:'0 auto'}}><Link2 size={17}/>Partager mon lien client</button>
-              </div>
-            )
-          }
-          return null
-        }
-        // Regroupe par jour
-        const groups: { key:string; label:string; isToday:boolean; items:Demande[] }[] = []
-        for (const d of list) {
-          const ds = new Date(d.date_chantier!).toDateString()
-          let g = groups.find(x => x.key === ds)
-          if (!g) {
-            const label = isToday(d.date_chantier!) ? "Aujourd'hui" : isTomorrow(d.date_chantier!) ? 'Demain' : formatDate(d.date_chantier!)
-            g = { key: ds, label, isToday: isToday(d.date_chantier!), items: [] }
-            groups.push(g)
-          }
-          g.items.push(d)
-        }
-        return groups.map(g => (
-          <div key={g.key} style={{marginBottom:22}}>
-            {/* Date en titre noir */}
-            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
-              <h2 className="section-title" style={{textTransform:'capitalize'}}>{g.label}</h2>
-              <span style={{fontSize:12,fontWeight:700,color:'var(--text3)'}}>· {g.items.length} chantier{g.items.length>1?'s':''}</span>
-            </div>
-            <div style={{display:'flex',flexDirection:'column'}}>
-              {g.items.map((d:Demande)=><CardChantier key={d.id} d={d} onValider={()=>valider(d.id)} validating={validating===d.id} removing={removing===d.id} highlight={g.isToday} />)}
-            </div>
-          </div>
-        ))
-      })()}
-
-      {/* Nouvelles demandes ensuite — les leads à traiter */}
-      {nouvelles.length>0 && <>
-        <SectionTitle title="À traiter" count={nouvelles.length} />
-        <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
-          {nouvelles.map((d:Demande,i:number)=><CardDemande key={d.id} d={d} i={i} onCreneaux={()=>onCreneaux(d)} />)}
+      {/* Vue segmentée : À traiter · Aujourd'hui · À venir */}
+      {(nouvelles.length + todayList.length + futureList.length) === 0 ? (
+        <div style={{textAlign:'center',padding:'40px 14px'}} className="a-fadeIn">
+          <div className="icon-tile" style={{width:58,height:58,borderRadius:16,background:'var(--blue-dim)',border:'1px solid var(--blue-mid)',margin:'0 auto 16px'}}><Link2 size={24} color="var(--blue)" /></div>
+          <p style={{fontSize:16,fontWeight:700,marginBottom:5}}>Prêt à recevoir vos demandes</p>
+          <p style={{fontSize:13,color:'var(--text3)',maxWidth:280,margin:'0 auto 18px',lineHeight:1.5}}>Partagez votre lien client : chaque demande arrivera directement ici.</p>
+          <button onClick={onShare} className="btn-primary" style={{width:'auto',padding:'13px 22px',margin:'0 auto'}}><Link2 size={17}/>Partager mon lien client</button>
         </div>
-      </>}
+      ) : (
+        <>
+          <div style={{display:'flex',gap:4,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:14,padding:4,marginBottom:16}}>
+            {([
+              { k:'a_traiter',  label:'À traiter',    count: nouvelles.length },
+              { k:'aujourdhui', label:"Aujourd'hui",  count: todayList.length },
+              { k:'avenir',     label:'À venir',      count: futureList.length },
+            ] as const).map(s => {
+              const on = vue === s.k
+              return (
+                <button key={s.k} onClick={()=>{ haptic(5); setVue(s.k) }}
+                  style={{flex:1,padding:'9px 4px',borderRadius:10,border:'none',cursor:'pointer',fontSize:12.5,fontWeight:700,letterSpacing:'-0.01em',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5,
+                    transition:'background .2s, color .2s, box-shadow .2s',
+                    background:on?'var(--surface)':'transparent',color:on?'var(--text)':'var(--text3)',boxShadow:on?'0 1px 3px rgba(15,23,42,0.12)':'none'}}>
+                  {s.label}
+                  {s.count>0 && <span style={{fontSize:11,fontWeight:800,minWidth:17,height:17,padding:'0 5px',borderRadius:9,display:'inline-flex',alignItems:'center',justifyContent:'center',background:on?'var(--blue)':'var(--border2)',color:on?'#fff':'var(--text3)'}}>{s.count}</span>}
+                </button>
+              )
+            })}
+          </div>
+
+          <div key={vue} className="tab-pane fwd">
+            {vue==='a_traiter' && (
+              nouvelles.length
+                ? <div style={{display:'flex',flexDirection:'column',gap:10}}>{nouvelles.map((d:Demande,i:number)=><CardDemande key={d.id} d={d} i={i} onCreneaux={()=>onCreneaux(d)} />)}</div>
+                : <Empty Icon={Check} title="Rien à traiter" sub="Toutes vos demandes sont traitées." />
+            )}
+            {vue==='aujourdhui' && (
+              todayList.length
+                ? <div style={{display:'flex',flexDirection:'column'}}>{todayList.map((d:Demande)=><CardChantier key={d.id} d={d} onValider={()=>valider(d.id)} validating={validating===d.id} removing={removing===d.id} />)}</div>
+                : <Empty Icon={CalendarDays} title="Rien aujourd'hui" sub="Aucun chantier prévu aujourd'hui." />
+            )}
+            {vue==='avenir' && (() => {
+              if (!futureList.length) return <Empty Icon={CalendarDays} title="Rien à venir" sub="Vos prochains chantiers s'afficheront ici." />
+              const groups: { key:string; label:string; items:Demande[] }[] = []
+              for (const d of futureList) {
+                const ds = new Date(d.date_chantier!).toDateString()
+                let g = groups.find(x => x.key === ds)
+                if (!g) { g = { key: ds, label: isTomorrow(d.date_chantier!) ? 'Demain' : formatDate(d.date_chantier!), items: [] }; groups.push(g) }
+                g.items.push(d)
+              }
+              return groups.map(g => (
+                <div key={g.key} style={{marginBottom:18}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+                    <h2 className="section-title" style={{fontSize:16,textTransform:'capitalize'}}>{g.label}</h2>
+                    <span style={{fontSize:12,fontWeight:700,color:'var(--text3)'}}>· {g.items.length}</span>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column'}}>
+                    {g.items.map((d:Demande)=><CardChantier key={d.id} d={d} onValider={()=>valider(d.id)} validating={validating===d.id} removing={removing===d.id} />)}
+                  </div>
+                </div>
+              ))
+            })()}
+          </div>
+        </>
+      )}
     </div>
   )
 }

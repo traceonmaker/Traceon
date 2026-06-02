@@ -136,7 +136,6 @@ export default function Dashboard() {
   const [modal, setModal] = useState<Demande|null>(null)
   const [linkCopied, setLinkCopied] = useState(false)
   const [toast, setToast] = useState<{msg:string; action?:{label:string; fn:()=>void}}|null>(null)
-  const [celebrate, setCelebrate] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [authed, setAuthed] = useState<boolean|null>(null)
   const undoRef = useRef<{id:string; timer:any}|null>(null)
@@ -199,8 +198,8 @@ export default function Dashboard() {
       try {
         const r = await authedFetch('/api/valider', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({demande_id:id}) })
         if (!r.ok) throw new Error()
-        await load(); setRemoving(null); setToast(null)
-        haptic([10,30,10,30,20]); setCelebrate(true); setTimeout(()=>setCelebrate(false),1300)
+        await load(); setRemoving(null)
+        haptic([10,30,12]); setToast({ msg:'Chantier encaissé' })
       } catch {
         setRemoving(null); setToast({ msg:'Connexion impossible, réessaie' })
       }
@@ -350,19 +349,6 @@ export default function Dashboard() {
         </button>
       )}
 
-      {celebrate && (
-        <div className="confetti">
-          {Array.from({length:18}).map((_,i)=>(
-            <i key={i} style={{
-              left:`${(i*5.4+3)%98}%`,
-              background:['#1d5fed','#16c079','#f6c945','#ffffff'][i%4],
-              animationDelay:`${(i%6)*0.04}s`,
-              transform:`rotate(${i*37}deg)`,
-            }} />
-          ))}
-        </div>
-      )}
-
       {toast && (
         <div className="toast-wrap">
           <div className="toast">
@@ -500,8 +486,8 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
           <button onClick={onShare} className="btn-primary" style={{width:'auto',padding:'13px 22px',margin:'0 auto'}}><Link2 size={17}/>Partager mon lien client</button>
         </div>
       ) : (
-        <>
-          <div style={{display:'flex',gap:4,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:14,padding:4,marginBottom:16}}>
+        <div onTouchStart={e=>{ touchRef.current = { x:e.touches[0].clientX, y:e.touches[0].clientY } }} onTouchEnd={onSwipeEnd} style={{minHeight:'56vh'}}>
+          <div style={{display:'flex',gap:4,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:14,padding:4,marginBottom:10}}>
             {([
               { k:'a_traiter',  label:'À traiter',    count: nouvelles.length },
               { k:'aujourdhui', label:"Aujourd'hui",  count: todayList.length },
@@ -520,9 +506,8 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
             })}
           </div>
 
-          <div key={vue} className={`tab-pane ${segDir>0?'fwd':'back'}`}
-            onTouchStart={e=>{ touchRef.current = { x:e.touches[0].clientX, y:e.touches[0].clientY } }}
-            onTouchEnd={onSwipeEnd}>
+          <div style={{display:'flex',justifyContent:'center',marginBottom:14}}><div style={{width:38,height:4,borderRadius:2,background:'var(--border2)'}} /></div>
+          <div key={vue} className={`tab-pane ${segDir>0?'fwd':'back'}`}>
             {vue==='a_traiter' && (
               nouvelles.length
                 ? <div style={{display:'flex',flexDirection:'column',gap:10}}>{nouvelles.map((d:Demande,i:number)=><CardDemande key={d.id} d={d} i={i} onCreneaux={()=>onCreneaux(d)} />)}</div>
@@ -555,7 +540,7 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
               ))
             })()}
           </div>
-        </>
+        </div>
       )}
     </div>
   )
@@ -678,8 +663,8 @@ function Bilan({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demand
   }
   const segs = [{ k:'historique', label:'Historique', count:payes.length }, { k:'stats', label:'Stats', count:0 }] as const
   return (
-    <div>
-      <div style={{display:'flex',gap:4,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:14,padding:4,marginBottom:16}}>
+    <div onTouchStart={e=>{ touchRef.current = { x:e.touches[0].clientX, y:e.touches[0].clientY } }} onTouchEnd={onEnd} style={{minHeight:'72vh'}}>
+      <div style={{display:'flex',gap:4,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:14,padding:4,marginBottom:10}}>
         {segs.map(s => {
           const on = sub === s.k
           return (
@@ -690,8 +675,8 @@ function Bilan({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demand
           )
         })}
       </div>
-      <div key={sub} className={`tab-pane ${dir>0?'fwd':'back'}`}
-        onTouchStart={e=>{ touchRef.current = { x:e.touches[0].clientX, y:e.touches[0].clientY } }} onTouchEnd={onEnd}>
+      <div style={{display:'flex',justifyContent:'center',marginBottom:14}}><div style={{width:38,height:4,borderRadius:2,background:'var(--border2)'}} /></div>
+      <div key={sub} className={`tab-pane ${dir>0?'fwd':'back'}`}>
         {sub==='historique' && <Historique payes={payes} encaisse={encaisse} />}
         {sub==='stats' && <Stats payes={payes} demandes={demandes} encaisse={encaisse} />}
       </div>

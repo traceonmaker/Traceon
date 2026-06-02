@@ -506,7 +506,9 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
             })}
           </div>
 
-          <div style={{display:'flex',justifyContent:'center',marginBottom:14}}><div style={{width:38,height:4,borderRadius:2,background:'var(--border2)'}} /></div>
+          <div style={{position:'relative',height:4,marginBottom:14}}>
+            <div style={{position:'absolute',top:0,left:`${(VUES.indexOf(vue)+0.5)*(100/3)}%`,transform:'translateX(-50%)',width:40,height:4,borderRadius:2,background:'var(--text3)',transition:'left .32s cubic-bezier(.22,1,.36,1)'}} />
+          </div>
           <div key={vue} className={`tab-pane ${segDir>0?'fwd':'back'}`}>
             {vue==='a_traiter' && (
               nouvelles.length
@@ -675,7 +677,9 @@ function Bilan({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demand
           )
         })}
       </div>
-      <div style={{display:'flex',justifyContent:'center',marginBottom:14}}><div style={{width:38,height:4,borderRadius:2,background:'var(--border2)'}} /></div>
+      <div style={{position:'relative',height:4,marginBottom:14}}>
+        <div style={{position:'absolute',top:0,left:`${((sub==='historique'?0:1)+0.5)*50}%`,transform:'translateX(-50%)',width:40,height:4,borderRadius:2,background:'var(--text3)',transition:'left .32s cubic-bezier(.22,1,.36,1)'}} />
+      </div>
       <div key={sub} className={`tab-pane ${dir>0?'fwd':'back'}`}>
         {sub==='historique' && <Historique payes={payes} encaisse={encaisse} />}
         {sub==='stats' && <Stats payes={payes} demandes={demandes} encaisse={encaisse} />}

@@ -79,8 +79,8 @@ export default function Formulaire() {
                   className={`a-fadeUp d${i+1}`}
                   style={{padding:16,borderRadius:16,textAlign:'left',background:form.type_intervention===t.type?'var(--blue-dim)':'#fff',border:`1.5px solid ${form.type_intervention===t.type?'var(--blue)':'var(--border)'}`,cursor:'pointer',transition:'all .2s',boxShadow:'var(--shadow-sm)'}}>
                   <div className="icon-tile" style={{width:42,height:42,borderRadius:12,background:`${sv.color}14`,marginBottom:10}}><sv.Icon size={20} color={sv.color} /></div>
-                  <p style={{fontSize:14,fontWeight:700}}>{t.type}</p>
-                  <p style={{fontSize:11,color:'var(--text3)',marginTop:2}}>dès {t.prix_base}€</p>
+                  <p style={{fontSize:14,fontWeight:700,color:'#0c1424'}}>{t.type}</p>
+                  <p style={{fontSize:11,color:'#64748b',marginTop:2}}>dès {t.prix_base}€</p>
                 </button>
               )})}
             </div>

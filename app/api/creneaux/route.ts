@@ -14,7 +14,9 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin.from('demandes').update({
     statut: 'creneau_propose',
-    creneaux_proposes: creneaux
+    creneaux_proposes: creneaux,
+    creneaux_envoyes_at: new Date().toISOString(),
+    relance_envoyee: false,
   }).eq('id', demande_id).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

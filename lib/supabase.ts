@@ -79,6 +79,8 @@ export type Demande = {
   date_confirmation: string | null
   date_chantier: string | null
   date_paiement: string | null
+  creneaux_envoyes_at: string | null
+  relance_envoyee: boolean | null
 }
 
 export type Creneau = {

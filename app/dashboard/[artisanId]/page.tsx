@@ -464,7 +464,7 @@ function Accueil({ nouvelles, encaisse, potentiel, confirmes, valider, validatin
           </div>
           <div style={{display:'flex',gap:14,marginTop:20}}>
             <div className="hero-stat" style={{flex:1,padding:'13px 15px',border:'1px solid rgba(255,255,255,0.28)',background:'rgba(255,255,255,0.14)',backdropFilter:'blur(8px)',boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 6px 16px rgba(5,9,31,0.2)'}}>
-              <p style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,0.92)',letterSpacing:'-0.02em'}}>À encaisser</p>
+              <p style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,0.92)',letterSpacing:'-0.02em'}}>Prévu</p>
               <p className="amount" style={{fontSize:20,marginTop:4,color:'#fff'}}>{eur(potentiel)}</p>
             </div>
             <div className="hero-stat" style={{flex:1,padding:'13px 15px',border:'1px solid rgba(255,255,255,0.28)',background:'rgba(255,255,255,0.14)',backdropFilter:'blur(8px)',boxShadow:'0 1px 0 rgba(255,255,255,0.25) inset, 0 6px 16px rgba(5,9,31,0.2)',minWidth:0}}>
@@ -1235,6 +1235,18 @@ function CatLabel({ type }: { type:string }) {
   )
 }
 
+// Délai avant la relance auto (cron quotidien 13h UTC, éligible 2h après l'envoi des créneaux)
+function relanceDansLabel(envoyeAt: string): string {
+  const eligible = new Date(envoyeAt).getTime() + 2 * 3600e3
+  const ref = Math.max(Date.now(), eligible)
+  const run = new Date(ref); run.setUTCHours(13, 0, 0, 0)
+  if (run.getTime() < ref) run.setUTCDate(run.getUTCDate() + 1)
+  const h = Math.round((run.getTime() - Date.now()) / 3600e3)
+  if (h <= 1) return 'Relance imminente'
+  if (h < 24) return `Relance auto dans ${h} h`
+  return `Relance auto dans ${Math.round(h / 24)} j`
+}
+
 function CardDemande({ d, i, onCreneaux }: { d:Demande; i:number; onCreneaux:()=>void }) {
   const enAttente = d.statut === 'creneau_propose'
   return (
@@ -1250,6 +1262,9 @@ function CardDemande({ d, i, onCreneaux }: { d:Demande; i:number; onCreneaux:()=
         <div style={{textAlign:'right',flexShrink:0}}>
           {d.prix_estime ? <span className="amount-green" style={{fontSize:20}}>{eur(d.prix_estime)}</span> : null}
           {enAttente && <p style={{fontSize:11,fontWeight:700,color:'var(--text3)',marginTop:3}}>En attente</p>}
+          {enAttente && (d.relance_envoyee
+            ? <p style={{fontSize:10,color:'var(--green)',marginTop:1,fontWeight:600}}>Relancé ✓</p>
+            : d.creneaux_envoyes_at && <p style={{fontSize:10,color:'var(--text3)',marginTop:1}}>{relanceDansLabel(d.creneaux_envoyes_at)}</p>)}
         </div>
       </div>
       {d.client_description && (

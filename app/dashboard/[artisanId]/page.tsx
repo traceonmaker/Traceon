@@ -11,7 +11,7 @@ import {
   Home, CalendarDays, Clock, BarChart3, Settings, Phone, MapPin, Check,
   Link2, Plus, Trash2, Droplet, Zap, Snowflake, Hammer, Paintbrush, Wrench,
   ChevronLeft, ChevronRight, TrendingUp, Save, Upload, Copy,
-  Euro, Briefcase, Receipt, Percent, FileText, Download, Sun, Moon, Monitor, BellRing
+  Euro, Briefcase, Receipt, Percent, FileText, Download, Sun, Moon, Monitor, BellRing, RotateCcw
 } from 'lucide-react'
 import InstallPrompt from '@/app/components/InstallPrompt'
 import PushSetup from '@/app/components/PushSetup'
@@ -128,6 +128,7 @@ export default function Dashboard() {
   const router = useRouter()
 
   const { artisanId } = useParams<{ artisanId:string }>()
+  const isDemo = artisanId === DEMO_ID
   useEffect(() => {
     async function init() {
       const isDemo = artisanId === DEMO_ID
@@ -245,6 +246,12 @@ export default function Dashboard() {
     setLinkCopied(true); haptic(8); setToast({ msg:'Lien client copié' })
     setTimeout(()=>setLinkCopied(false),1600)
   }
+  async function resetDemo() {
+    haptic(8)
+    await fetch('/api/demo/reset').catch(()=>{})
+    await load()
+    setToast({ msg:'Démo réinitialisée' })
+  }
 
   if (authed === null || (artisan && loading)) return (
     <div style={{minHeight:'100vh',background:'var(--bg-grad)'}}>
@@ -290,11 +297,14 @@ export default function Dashboard() {
               <p style={{fontSize:15,fontWeight:700,letterSpacing:'-0.02em'}}>{artisan.nom_entreprise||artisan.nom}</p>
             </div>
           </div>
-          <button
-            onClick={copyLink}
-            className="fab" style={{width:'auto',padding:'0 14px',gap:7,fontSize:13,fontWeight:600}} title="Copier le lien de demande client">
-            {linkCopied ? <><Check size={16} color="var(--green)"/>Copié</> : <><Link2 size={16}/>Lien client</>}
-          </button>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            {isDemo && <button onClick={resetDemo} className="fab" style={{width:40,height:40}} title="Réinitialiser la démo" aria-label="Réinitialiser la démo"><RotateCcw size={16} /></button>}
+            <button
+              onClick={copyLink}
+              className="fab" style={{width:'auto',padding:'0 14px',gap:7,fontSize:13,fontWeight:600}} title="Copier le lien de demande client">
+              {linkCopied ? <><Check size={16} color="var(--green)"/>Copié</> : <><Link2 size={16}/>Lien client</>}
+            </button>
+          </div>
         </div>
 
         <div key={tab} className={`tab-pane ${dir>0?'fwd':'back'}`}>

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { formatDate, formatHeure, isToday, isTomorrow, suggererCreneaux } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import LaunchIntro from '@/app/components/LaunchIntro'
 import type { Demande, Artisan, TypeChantier, Prestation } from '@/lib/supabase'
 
 // Compte démo — accessible sans connexion (pour les démonstrations commerciales)
@@ -124,11 +125,19 @@ export default function Dashboard() {
   const [toast, setToast] = useState<{msg:string; action?:{label:string; fn:()=>void}}|null>(null)
   const [addOpen, setAddOpen] = useState(false)
   const [authed, setAuthed] = useState<boolean|null>(null)
+  const [showIntro, setShowIntro] = useState(false)
   const undoRef = useRef<{id:string; timer:any}|null>(null)
   const router = useRouter()
 
   const { artisanId } = useParams<{ artisanId:string }>()
   const isDemo = artisanId === DEMO_ID
+  // Premier lancement : animation de déblocage + plongée dans l'univers TraceOn
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('welcome') === '1') {
+      setShowIntro(true)
+      window.history.replaceState({}, '', `/dashboard/${artisanId}`)
+    }
+  }, [artisanId])
   useEffect(() => {
     async function init() {
       const isDemo = artisanId === DEMO_ID
@@ -283,6 +292,7 @@ export default function Dashboard() {
 
   return (
     <div style={{minHeight:'100vh',background:'var(--bg-grad)',position:'relative'}}>
+      {showIntro && <LaunchIntro onDone={()=>setShowIntro(false)} />}
       <div className="app-glow" />
       <div style={{maxWidth:480,margin:'0 auto',padding:'20px 16px calc(124px + env(safe-area-inset-bottom))',position:'relative',zIndex:1}}>
 

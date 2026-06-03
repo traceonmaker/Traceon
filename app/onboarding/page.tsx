@@ -110,7 +110,7 @@ export default function Onboarding() {
               </div>
             ))}
           </div>
-          <button onClick={()=>router.push(`/dashboard/${DEMO_ID}`)} className="btn-primary" style={{height:50,fontSize:15}}>Payer 250 €/mois<ArrowRight size={16}/></button>
+          <button onClick={()=>router.push(`/dashboard/${DEMO_ID}?welcome=1`)} className="btn-primary" style={{height:50,fontSize:15}}>Payer 250 €/mois<ArrowRight size={16}/></button>
           <p style={{fontSize:11,color:'var(--text3)',marginTop:12}}>🧪 Mode démo — aucun paiement réel, l'app s'ouvre directement.</p>
         </div>
       </Shell>
@@ -139,7 +139,7 @@ export default function Onboarding() {
               {copied ? <Check size={16} color="var(--green)"/> : <Copy size={16}/>}
             </button>
           </div>
-          <button onClick={()=>router.push(`/dashboard/${created.id}`)} className="btn-primary">Accéder à mon dashboard<ArrowRight size={16}/></button>
+          <button onClick={()=>router.push(`/dashboard/${created.id}?welcome=1`)} className="btn-primary">Accéder à mon dashboard<ArrowRight size={16}/></button>
         </div>
       </Shell>
     )

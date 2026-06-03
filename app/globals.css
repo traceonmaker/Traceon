@@ -514,6 +514,25 @@ body, .card, .fab, .bottom-nav, .input-field, .btn-ghost { transition: backgroun
 .tab-pane.fwd  { animation: paneFwd  .3s cubic-bezier(.22,1,.36,1) both; }
 .tab-pane.back { animation: paneBack .3s cubic-bezier(.22,1,.36,1) both; }
 
+/* ───────── Animation d'entrée (déblocage + plongée dans l'univers) ───────── */
+@keyframes introMarkIn { 0% { opacity:0; transform:scale(.55) } 60% { opacity:1; transform:scale(1.06) } 100% { opacity:1; transform:scale(1) } }
+@keyframes introGlow   { 0% { box-shadow:0 0 0 0 rgba(255,255,255,.45) } 100% { box-shadow:0 0 0 46px rgba(255,255,255,0) } }
+@keyframes introText   { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:none } }
+@keyframes introPlunge { 0% { opacity:1; transform:scale(1) } 100% { opacity:0; transform:scale(1.25) } }
+.intro-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, #2a63de 0%, #1d5fed 46%, #0c2f7a 100%);
+  animation: introPlunge .65s cubic-bezier(.4,0,.2,1) 1.7s forwards;
+}
+.intro-mark {
+  width: 100px; height: 100px; border-radius: 30px;
+  background: rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center;
+  animation: introMarkIn .65s cubic-bezier(.22,1,.36,1) both, introGlow 1.5s ease-out .45s;
+}
+.intro-word { color:#fff; font-size:30px; font-weight:800; letter-spacing:3px; margin-top:24px; animation: introText .55s ease .4s both; }
+.intro-tag  { color:rgba(255,255,255,0.82); font-size:14px; margin-top:6px; animation: introText .55s ease .6s both; }
+
 /* ───────── Accessibilité : respect de "réduire les animations" ───────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -42,6 +42,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ token:
   const num = `N° ${String(d.id).slice(0, 8).toUpperCase()}`
   doc.text(num, W - 16, y + 13, { align: 'right' })
   doc.text(`Date : ${new Date(d.created_at).toLocaleDateString('fr-FR')}`, W - 16, y + 18, { align: 'right' })
+  doc.text('Validité : 30 jours', W - 16, y + 23, { align: 'right' })
 
   y = 50
   doc.setDrawColor(...blue); doc.setLineWidth(0.6); doc.line(16, y, W - 16, y)
@@ -93,8 +94,9 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ token:
   doc.text('Total HT', labelX, y); doc.text(`${totalHT.toFixed(2)} €`, valX, y, { align: 'right' }); y += 6
   if (tva > 0) { doc.text(`TVA (${tva}%)`, labelX, y); doc.text(`${montantTVA.toFixed(2)} €`, valX, y, { align: 'right' }); y += 6 }
   doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(...blue)
-  doc.text('TOTAL TTC', labelX, y); doc.text(`${totalTTC.toFixed(2)} €`, valX, y, { align: 'right' }); y += 8
+  doc.text(tva > 0 ? 'TOTAL TTC' : 'TOTAL', labelX, y); doc.text(`${totalTTC.toFixed(2)} €`, valX, y, { align: 'right' }); y += 7
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...gray)
+  if (tva === 0) { doc.setFont('helvetica', 'italic'); doc.text('TVA non applicable, art. 293 B du CGI', valX, y, { align: 'right' }); doc.setFont('helvetica', 'normal'); y += 6 }
   doc.text(`Acompte à la commande (30%) : ${acompte.toFixed(2)} €`, valX, y, { align: 'right' }); y += 12
 
   // ── Conditions / mentions (variables fixes) ──
@@ -109,6 +111,15 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ token:
   block('CONDITIONS DE PAIEMENT', a.conditions_paiement || '')
   block('MENTIONS LÉGALES', a.mentions_legales || '')
   block('CONDITIONS GÉNÉRALES DE VENTE', a.cgv || '')
+
+  // ── Bon pour accord (acceptation client — obligatoire FR) ──
+  if (y > 250) y = 250
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...dark)
+  doc.text('BON POUR ACCORD', 16, y)
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...gray)
+  doc.text('Date et signature du client, précédées de la mention « Bon pour accord » :', 16, y + 5)
+  doc.setDrawColor(...gray); doc.setLineWidth(0.2); doc.rect(16, y + 8, 84, 20)
+  doc.setFont('helvetica', 'italic'); doc.text('Devis gratuit · Montants en euros.', W - 16, y + 8, { align: 'right' }); doc.setFont('helvetica', 'normal')
 
   // ── Pied de page ──
   doc.setFontSize(7); doc.setTextColor(...gray)

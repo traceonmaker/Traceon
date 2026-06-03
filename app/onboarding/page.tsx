@@ -42,6 +42,9 @@ export default function Onboarding() {
   const [created, setCreated] = useState<{id:string}|null>(null)
   const [copied, setCopied] = useState(false)
   const [erreur, setErreur] = useState('')
+  const [demoPaywall, setDemoPaywall] = useState(false)
+  const [isDemo] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('demo') === '1')
+  const DEMO_ID = '69c771ad-cdd1-412b-9022-0aac616a7d34'
 
   const [d, setD] = useState({ nom:'', email:'', telephone:'', nom_entreprise:'', zone_intervention:'' })
   const set = (k:string,v:string)=>setD(p=>({...p,[k]:v}))
@@ -49,6 +52,7 @@ export default function Onboarding() {
   function go(n:number) { setDir(n>step?1:-1); setStep(n) }
 
   async function finish() {
+    if (isDemo) { setDemoPaywall(true); return } // démo : on saute vers le faux paywall, sans créer de compte
     setSaving(true); setErreur('')
     try {
       const payload = {
@@ -73,6 +77,45 @@ export default function Onboarding() {
   }
 
   const canNext = [ !!(d.nom && d.email && d.telephone), !!d.nom_entreprise ][step]
+
+  // ───────── DÉMO : faux paywall (aucun paiement réel) ─────────
+  if (isDemo && demoPaywall) {
+    const av = [
+      'Chaque demande sur votre téléphone, en temps réel',
+      'Clients confirmés et relancés par SMS, automatiquement',
+      'Planning & créneaux intelligents',
+      'Devis pro + suivi de vos encaissements',
+    ]
+    return (
+      <Shell>
+        <div className="card a-scaleIn" style={{maxWidth:400,margin:'0 auto',padding:'28px 24px',textAlign:'center'}}>
+          <div style={{width:56,height:56,borderRadius:16,background:'linear-gradient(135deg,#2a63de,#1550cf)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',boxShadow:'var(--shadow-blue)'}}>
+            <BellRing size={26} color="#fff" />
+          </div>
+          <h1 style={{fontSize:23,fontWeight:800,letterSpacing:'-0.03em',marginBottom:6,lineHeight:1.15}}>Ne perdez plus un seul chantier</h1>
+          <p style={{fontSize:14,color:'var(--text2)',marginBottom:18,lineHeight:1.5}}>{d.nom_entreprise || 'Votre espace'} est prêt. Activez votre essai — chaque demande tombe directement sur votre téléphone.</p>
+          <div style={{background:'var(--blue-dim)',border:'1px solid var(--blue-mid)',borderRadius:12,padding:'12px 14px',marginBottom:18,textAlign:'left'}}>
+            <p style={{fontSize:13,fontWeight:800,color:'var(--blue-600)'}}>Un seul chantier gagné = plusieurs mois remboursés.</p>
+            <p style={{fontSize:12,color:'var(--text2)',marginTop:3,lineHeight:1.45}}>Un chantier moyen vaut 200 à 600 €. TraceOn vous évite d'en perdre.</p>
+          </div>
+          <div style={{display:'flex',alignItems:'baseline',justifyContent:'center',gap:4,marginBottom:18}}>
+            <span style={{fontSize:38,fontWeight:900,letterSpacing:'-0.04em'}}>250 €</span>
+            <span style={{fontSize:14,color:'var(--text3)',fontWeight:600}}>/ mois</span>
+          </div>
+          <div style={{textAlign:'left',display:'flex',flexDirection:'column',gap:9,marginBottom:24}}>
+            {av.map(a=>(
+              <div key={a} style={{display:'flex',alignItems:'center',gap:10,fontSize:13,fontWeight:500}}>
+                <span style={{width:20,height:20,borderRadius:'50%',background:'var(--green-dim)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><Check size={13} color="var(--green)"/></span>
+                {a}
+              </div>
+            ))}
+          </div>
+          <button onClick={()=>router.push(`/dashboard/${DEMO_ID}`)} className="btn-primary" style={{height:50,fontSize:15}}>Payer 250 €/mois<ArrowRight size={16}/></button>
+          <p style={{fontSize:11,color:'var(--text3)',marginTop:12}}>🧪 Mode démo — aucun paiement réel, l'app s'ouvre directement.</p>
+        </div>
+      </Shell>
+    )
+  }
 
   // ───────── Écran de fin ─────────
   if (created) {

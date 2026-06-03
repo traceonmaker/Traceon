@@ -11,7 +11,7 @@ import {
   Home, CalendarDays, Clock, BarChart3, Settings, Phone, MapPin, Check,
   Link2, Plus, Trash2, Droplet, Zap, Snowflake, Hammer, Paintbrush, Wrench,
   ChevronLeft, ChevronRight, TrendingUp, Save, Upload, Copy,
-  Euro, Briefcase, Receipt, Percent, FileText, Download, Sun, Moon, Monitor
+  Euro, Briefcase, Receipt, Percent, FileText, Download, Sun, Moon, Monitor, BellRing
 } from 'lucide-react'
 import InstallPrompt from '@/app/components/InstallPrompt'
 import PushSetup from '@/app/components/PushSetup'
@@ -363,22 +363,27 @@ function Paywall({ artisan }: { artisan:Artisan }) {
     else setLoading(false)
   }
   const avantages = [
-    'Demandes clients en temps réel',
+    'Chaque demande sur votre téléphone, en temps réel',
+    'Clients confirmés et relancés par SMS, automatiquement',
     'Planning & créneaux intelligents',
-    'Devis PDF automatiques',
-    'Suivi client par SMS',
-    'Statistiques & encaissements',
+    'Devis pro + suivi de vos encaissements',
   ]
   return (
     <div style={{minHeight:'100vh',background:'var(--bg-grad)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div className="card a-scaleIn" style={{maxWidth:400,width:'100%',padding:'28px 24px',textAlign:'center'}}>
         <div style={{width:56,height:56,borderRadius:16,background:'linear-gradient(135deg,#2a63de,#1550cf)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',boxShadow:'var(--shadow-blue)'}}>
-          <Briefcase size={26} color="#fff" />
+          <BellRing size={26} color="#fff" />
         </div>
-        <h1 style={{fontSize:22,fontWeight:800,letterSpacing:'-0.03em',marginBottom:6}}>Activez {artisan.nom_entreprise || 'votre espace'}</h1>
-        <p style={{fontSize:14,color:'var(--text2)',marginBottom:20,lineHeight:1.5}}>Tout votre business au même endroit. 7 jours d'essai gratuit, sans engagement.</p>
+        <h1 style={{fontSize:23,fontWeight:800,letterSpacing:'-0.03em',marginBottom:6,lineHeight:1.15}}>Ne perdez plus un seul chantier</h1>
+        <p style={{fontSize:14,color:'var(--text2)',marginBottom:18,lineHeight:1.5}}>{artisan.nom_entreprise || 'Votre espace'} est prêt. Activez votre essai — chaque demande tombe directement sur votre téléphone.</p>
 
-        <div style={{display:'flex',alignItems:'baseline',justifyContent:'center',gap:4,marginBottom:20}}>
+        {/* Cadrage ROI */}
+        <div style={{background:'var(--blue-dim)',border:'1px solid var(--blue-mid)',borderRadius:12,padding:'12px 14px',marginBottom:18,textAlign:'left'}}>
+          <p style={{fontSize:13,fontWeight:800,color:'var(--blue-600)',letterSpacing:'-0.01em'}}>Un seul chantier gagné = plusieurs mois remboursés.</p>
+          <p style={{fontSize:12,color:'var(--text2)',marginTop:3,lineHeight:1.45}}>Un chantier moyen vaut 200 à 600 €. TraceOn vous évite d'en perdre — il se rentabilise dès le 1ᵉʳ client.</p>
+        </div>
+
+        <div style={{display:'flex',alignItems:'baseline',justifyContent:'center',gap:4,marginBottom:18}}>
           <span style={{fontSize:38,fontWeight:900,letterSpacing:'-0.04em'}}>250 €</span>
           <span style={{fontSize:14,color:'var(--text3)',fontWeight:600}}>/ mois</span>
         </div>
@@ -393,9 +398,9 @@ function Paywall({ artisan }: { artisan:Artisan }) {
         </div>
 
         <button onClick={abonner} disabled={loading} className="btn-primary" style={{height:50,fontSize:15}}>
-          {loading ? <span className="spinner spinner-w" /> : 'Démarrer mon essai gratuit'}
+          {loading ? <span className="spinner spinner-w" /> : 'Démarrer mes 7 jours gratuits'}
         </button>
-        <p style={{fontSize:11,color:'var(--text3)',marginTop:12}}>7 jours gratuits puis 250 €/mois · Annulable à tout moment</p>
+        <p style={{fontSize:11,color:'var(--text3)',marginTop:12}}>7 jours gratuits, puis 250 €/mois · Sans engagement, annulable en 1 clic</p>
       </div>
     </div>
   )

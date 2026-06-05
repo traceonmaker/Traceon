@@ -7,7 +7,7 @@ export default function LaunchIntro({ onDone, nom }: { onDone: () => void; nom?:
   useEffect(() => {
     const reduce = typeof window !== 'undefined'
       && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const t = setTimeout(onDone, reduce ? 450 : 2300)
+    const t = setTimeout(onDone, reduce ? 450 : 3900)
     return () => clearTimeout(t)
   }, [onDone])
 

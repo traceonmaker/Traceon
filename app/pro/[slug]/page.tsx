@@ -2,7 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { Star, ArrowRight, Phone, Clock, ShieldCheck, MessageSquare, CalendarCheck, CheckCircle2, MapPin } from 'lucide-react'
-import { Reveal, AvisCarousel } from './client'
+import { Reveal } from './client'
 
 export const runtime = 'nodejs'
 export const revalidate = 120
@@ -82,30 +82,75 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
         @keyframes proUp { from { opacity:0; transform:translateY(24px) } to { opacity:1; transform:none } }
         @keyframes proFloat { 0%,100% { transform:translate(-50%,0) } 50% { transform:translate(-50%,-22px) } }
         @keyframes proFloat2 { 0%,100% { transform:translateY(0) } 50% { transform:translateY(26px) } }
-        @keyframes proPulse { 0%,100% { opacity:.85 } 50% { opacity:.4 } }
         .pu{ animation: proUp .8s cubic-bezier(.22,1,.36,1) both }
         .pu1{animation-delay:.05s}.pu2{animation-delay:.15s}.pu3{animation-delay:.25s}.pu4{animation-delay:.35s}.pu5{animation-delay:.5s}
         @media (prefers-reduced-motion: reduce){ .pu,.pu1,.pu2,.pu3,.pu4,.pu5{animation:none!important} }
+        /* Responsive */
+        .pro-shell{ padding:0 20px 70px; }
+        .pro-name{ max-width:55vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .pro-cta{ width:auto; }
+        @media (max-width: 600px){
+          .pro-shell{ padding:0 15px 56px; }
+          .pro-hero{ padding:30px 0 22px !important; }
+          .pro-stats{ width:100%; gap:10px !important; padding:16px 12px !important; }
+          .pst-big{ font-size:20px !important; }
+          .pst-small{ font-size:10.5px !important; }
+          .pro-cta{ width:100%; }
+          .pro-cta a{ flex:1; justify-content:center; }
+        }
+        @media (max-width: 360px){
+          .pro-stats{ gap:6px !important; }
+          .pst-big{ font-size:18px !important; }
+        }
+
+        /* ── Survol : l'élément se soulève + un halo bleu monte derrière ── */
+        .pro-card{ position:relative; overflow:hidden; transition: transform .35s cubic-bezier(.22,1,.36,1), box-shadow .35s ease, border-color .35s ease; }
+        .pro-card::before{
+          content:''; position:absolute; left:50%; bottom:-70%; width:140%; height:130%;
+          transform:translateX(-50%) translateY(24px);
+          background:radial-gradient(circle at center, rgba(45,99,222,.5) 0%, transparent 60%);
+          opacity:0; transition: opacity .45s ease, transform .6s cubic-bezier(.22,1,.36,1); pointer-events:none;
+        }
+        .pro-card > *{ position:relative; z-index:1; }
+        .pro-card:hover{ transform:translateY(-6px); border-color:rgba(91,140,255,.55); box-shadow:0 22px 55px rgba(29,95,237,.32); }
+        .pro-card:hover::before{ opacity:1; transform:translateX(-50%) translateY(-12px); }
+
+        .pro-lift{ transition: transform .25s ease, box-shadow .25s ease, filter .25s ease; }
+        .pro-lift:hover{ transform:translateY(-3px); filter:brightness(1.08); box-shadow:0 16px 42px rgba(37,99,235,.5); }
+
+        /* ── Lueur bleue qui s'élève en fond, en continu ── */
+        @keyframes proRise { 0%{ transform:translate(-50%,40px); opacity:.25 } 50%{ opacity:.6 } 100%{ transform:translate(-50%,-60px); opacity:0 } }
+        .pro-rise{ position:absolute; left:50%; bottom:-40px; width:560px; height:420px; pointer-events:none;
+          background:radial-gradient(circle, rgba(45,99,222,.34) 0%, transparent 65%); filter:blur(30px);
+          animation: proRise 7s ease-in-out infinite; }
+
+        /* ── Avis qui défilent lentement vers la gauche ── */
+        @keyframes proMarquee { from{ transform:translateX(0) } to{ transform:translateX(-50%) } }
+        .pro-marquee{ overflow:hidden; -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent); mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent); }
+        .pro-track{ display:flex; gap:14px; width:max-content; animation: proMarquee 45s linear infinite; }
+        .pro-marquee:hover .pro-track{ animation-play-state:paused; }
+        @media (prefers-reduced-motion: reduce){ .pro-track{ animation:none !important } .pro-rise{ animation:none !important } }
       `}</style>
       {/* Halos d'ambiance (flottants) */}
       <div style={{ position: 'absolute', top: -160, left: '50%', width: 680, height: 520, background: 'radial-gradient(circle, rgba(45,99,222,0.45) 0%, transparent 65%)', filter: 'blur(40px)', pointerEvents: 'none', animation: 'proFloat 9s ease-in-out infinite' }} />
       <div style={{ position: 'absolute', top: 360, right: -140, width: 420, height: 420, background: 'radial-gradient(circle, rgba(120,80,255,0.22) 0%, transparent 65%)', filter: 'blur(50px)', pointerEvents: 'none', animation: 'proFloat2 11s ease-in-out infinite' }} />
+      <div className="pro-rise" />
 
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 940, margin: '0 auto', padding: '0 20px 70px' }}>
+      <div className="pro-shell" style={{ position: 'relative', zIndex: 1, maxWidth: 940, margin: '0 auto', padding: '0 20px 70px' }}>
 
         {/* Nav */}
-        <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '22px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 11, overflow: 'hidden', background: 'linear-gradient(135deg,#2a63de,#1550cf)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 18px rgba(37,99,235,0.4)' }}>
+        <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '22px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, overflow: 'hidden', flexShrink: 0, background: 'linear-gradient(135deg,#2a63de,#1550cf)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 18px rgba(37,99,235,0.4)' }}>
               {a.logo_url ? <img src={a.logo_url} alt={nom} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontWeight: 800, fontSize: 16, color: '#fff' }}>{nom[0]?.toUpperCase()}</span>}
             </div>
-            <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.02em' }}>{nom}</span>
+            <span className="pro-name" style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.02em' }}>{nom}</span>
           </div>
-          <a href={formUrl} style={pill(C)}>Devis gratuit</a>
+          <a href={formUrl} className="pro-lift" style={{ ...pill(C), flexShrink: 0 }}>Devis gratuit</a>
         </nav>
 
         {/* Hero */}
-        <header style={{ textAlign: 'center', padding: '46px 0 30px' }}>
+        <header className="pro-hero" style={{ textAlign: 'center', padding: '46px 0 30px' }}>
           <span className="pu pu1" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 600, color: C.mut, background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 30, padding: '6px 14px' }}>
             <MapPin size={13} color={C.accent} /> {zone} · Artisan vérifié
           </span>
@@ -115,9 +160,9 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
           <p className="pu pu3" style={{ fontSize: 'clamp(15px,2.4vw,18px)', color: C.mut, maxWidth: 520, margin: '18px auto 0', lineHeight: 1.55 }}>
             {nom} intervient {avecZone(zone)}. Décrivez votre besoin en 1 minute — vous recevez un créneau et un devis clair, sans engagement.
           </p>
-          <div className="pu pu4" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginTop: 30 }}>
-            <a href={formUrl} style={{ ...cta(C), textDecoration: 'none' }}>Demander mon devis <ArrowRight size={19} /></a>
-            {a.telephone && <a href={`tel:${a.telephone}`} style={{ ...ghost(C), textDecoration: 'none' }}><Phone size={17} /> Appeler</a>}
+          <div className="pu pu4 pro-cta" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginTop: 30 }}>
+            <a href={formUrl} className="pro-lift" style={{ ...cta(C), textDecoration: 'none' }}>Demander mon devis <ArrowRight size={19} /></a>
+            {a.telephone && <a href={`tel:${a.telephone}`} className="pro-lift" style={{ ...ghost(C), textDecoration: 'none' }}><Phone size={17} /> Appeler</a>}
           </div>
           <div className="pu pu5" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 22px', justifyContent: 'center', marginTop: 26 }}>
             <Trust C={C} Icon={Clock} txt="Réponse rapide" />
@@ -128,7 +173,7 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
 
         {/* Carte de réassurance flottante */}
         <div className="pu pu5" style={{ display: 'flex', justifyContent: 'center', marginBottom: 56 }}>
-          <div style={{ background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 22, padding: '20px 26px', backdropFilter: 'blur(14px)', display: 'flex', gap: 34, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+          <div className="pro-stats pro-card" style={{ background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 22, padding: '20px 26px', backdropFilter: 'blur(14px)', display: 'flex', gap: 34, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
             <Stat C={C} big={aReel ? moyenne.toFixed(1) : '98%'} small={aReel ? `${a.avis_count} avis` : 'clients satisfaits'} />
             <div style={{ width: 1, background: C.glassBorder }} />
             <Stat C={C} big="< 24h" small="délai de réponse" />
@@ -143,7 +188,7 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
             <Eyebrow C={C} txt="Ce qu'on fait pour vous" />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
               {services.map(s => (
-                <span key={s} style={{ background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 14, padding: '13px 20px', fontSize: 15, fontWeight: 600 }}>{s}</span>
+                <span key={s} className="pro-card" style={{ display: 'inline-block', background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 14, padding: '13px 20px', fontSize: 15, fontWeight: 600 }}>{s}</span>
               ))}
             </div>
           </section></Reveal>
@@ -158,7 +203,7 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
               { Icon: CalendarCheck, t: 'Recevez créneau + devis', d: 'Une proposition claire, sans engagement.' },
               { Icon: CheckCircle2, t: "C'est réglé", d: 'On intervient, vous validez. Simple.' },
             ].map((s, i) => (
-              <div key={i} style={{ background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 20, padding: 22, position: 'relative' }}>
+              <div key={i} className="pro-card" style={{ background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 20, padding: 22, position: 'relative' }}>
                 <div style={{ position: 'absolute', top: 18, right: 20, fontSize: 40, fontWeight: 800, color: 'rgba(255,255,255,0.06)' }}>{i + 1}</div>
                 <div style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(135deg,rgba(91,140,255,0.25),rgba(29,95,237,0.15))', border: `1px solid ${C.glassBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
                   <s.Icon size={21} color={C.accent} />
@@ -170,17 +215,29 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
           </div>
         </section></Reveal>
 
-        {/* Avis qui tournent */}
+        {/* Avis qui défilent lentement vers la gauche */}
         <Reveal><section style={{ marginBottom: 56 }}>
           <Eyebrow C={C} txt="Ils nous ont fait confiance" />
-          <AvisCarousel avis={avis} />
+          <div className="pro-marquee">
+            <div className="pro-track">
+              {[...avis, ...avis].map((av: any, i: number) => (
+                <div key={i} className="pro-card" style={{ width: 300, flexShrink: 0, background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 18, padding: 20 }}>
+                  <div style={{ display: 'flex', gap: 3, marginBottom: 10 }}>
+                    {Array.from({ length: 5 }).map((_, k) => <Star key={k} size={15} color="#f5b740" fill={k < av.note ? '#f5b740' : 'none'} />)}
+                  </div>
+                  {av.commentaire && <p style={{ fontSize: 14.5, lineHeight: 1.55, color: 'rgba(244,247,255,0.86)' }}>“{av.commentaire}”</p>}
+                  <p style={{ fontSize: 12.5, color: C.mut2, marginTop: 12, fontWeight: 600 }}>{av.client_nom || 'Client vérifié'}{av.lieu ? ` · ${av.lieu}` : ''}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </section></Reveal>
 
         {/* CTA final */}
         <Reveal><section style={{ background: 'linear-gradient(135deg,#1d3a8a,#0c1f3f)', border: `1px solid ${C.glassBorder}`, borderRadius: 26, padding: '40px 24px', textAlign: 'center', boxShadow: '0 24px 70px rgba(13,31,63,0.6)' }}>
           <h2 style={{ fontSize: 'clamp(24px,4vw,32px)', fontWeight: 800, letterSpacing: '-0.035em', marginBottom: 10 }}>Prêt à régler votre chantier ?</h2>
           <p style={{ fontSize: 15, color: C.mut, maxWidth: 420, margin: '0 auto 24px', lineHeight: 1.5 }}>Ça prend 1 minute. Vous n'avez rien à payer pour demander un devis.</p>
-          <a href={formUrl} style={{ ...cta(C), textDecoration: 'none', margin: '0 auto' }}>Demander mon devis gratuit <ArrowRight size={19} /></a>
+          <a href={formUrl} className="pro-lift" style={{ ...cta(C), textDecoration: 'none', margin: '0 auto' }}>Demander mon devis gratuit <ArrowRight size={19} /></a>
         </section></Reveal>
 
         <p style={{ textAlign: 'center', fontSize: 11.5, color: C.mut2, marginTop: 30 }}>Propulsé par TraceOn</p>
@@ -195,4 +252,4 @@ function cta(C: any): any { return { display: 'inline-flex', alignItems: 'center
 function ghost(C: any): any { return { display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 600, color: C.txt, background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 15, padding: '15px 22px' } }
 function Trust({ C, Icon, txt }: any) { return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, color: C.mut, fontWeight: 600 }}><Icon size={15} color={C.accent} /> {txt}</span> }
 function Eyebrow({ C, txt }: any) { return <p style={{ textAlign: 'center', fontSize: 12.5, fontWeight: 700, color: C.accent, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 22 }}>{txt}</p> }
-function Stat({ C, big, small }: any) { return <div style={{ textAlign: 'center' }}><p style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em' }}>{big}</p><p style={{ fontSize: 11.5, color: C.mut, marginTop: 2 }}>{small}</p></div> }
+function Stat({ C, big, small }: any) { return <div style={{ textAlign: 'center' }}><p className="pst-big" style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em' }}>{big}</p><p className="pst-small" style={{ fontSize: 11.5, color: C.mut, marginTop: 2 }}>{small}</p></div> }

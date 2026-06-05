@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const seuil = new Date(Date.now() - DELAY_H * 3600 * 1000).toISOString()
   const { data: demandes } = await supabaseAdmin
     .from('demandes')
-    .select('id, client_nom, client_telephone, token, type_intervention, artisans(nom_entreprise, nom, message_relance)')
+    .select('id, client_nom, client_telephone, token, type_intervention, creneaux_proposes, artisans(nom_entreprise, nom, message_relance)')
     .eq('statut', 'creneau_propose')
     .eq('relance_envoyee', false)
     .not('creneaux_envoyes_at', 'is', null)
@@ -30,6 +30,18 @@ export async function GET(req: NextRequest) {
   let sent = 0
   for (const d of (demandes || [])) {
     if (!d.client_telephone) continue
+
+    // On ne relance QUE s'il reste au moins un créneau proposé encore à venir
+    // (au moins 1h dans le futur). Sinon, relancer "réservez ici" n'a aucun sens.
+    const slots = (d.creneaux_proposes as any[]) || []
+    if (slots.length) {
+      const futur = slots.some((s: any) => {
+        const t = new Date(`${s.date}T${s.heure_debut || '08:00'}`).getTime()
+        return !isNaN(t) && t > Date.now() + 60 * 60 * 1000
+      })
+      if (!futur) continue
+    }
+
     const ent = d.artisans?.nom_entreprise || d.artisans?.nom || 'votre artisan'
     const lien = `${url}/suivi/${d.token}`
     // Message personnalisé par l'artisan ({client}/{entreprise}/{lien}) ou message par défaut

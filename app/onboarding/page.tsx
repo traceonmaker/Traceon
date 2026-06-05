@@ -47,7 +47,11 @@ export default function Onboarding() {
   const DEMO_ID = '69c771ad-cdd1-412b-9022-0aac616a7d34'
 
   const [d, setD] = useState({ nom:'', email:'', telephone:'', nom_entreprise:'', zone_intervention:'' })
+  const [activites, setActivites] = useState<string[]>([])
   const set = (k:string,v:string)=>setD(p=>({...p,[k]:v}))
+  const toggleActivite = (t:string)=>setActivites(p => p.includes(t) ? p.filter(x=>x!==t) : [...p,t])
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)
+  const telOk = d.telephone.replace(/[^0-9]/g,'').length >= 8
 
   function go(n:number) { setDir(n>step?1:-1); setStep(n) }
 
@@ -55,9 +59,11 @@ export default function Onboarding() {
     if (isDemo) { setDemoPaywall(true); return } // démo : on saute vers le faux paywall, sans créer de compte
     setSaving(true); setErreur('')
     try {
+      // Le site ne montrera QUE les activités réelles de l'artisan
+      const choisis = DEFAULT_TYPES.filter(t => activites.includes(t.type))
       const payload = {
         ...d,
-        types_chantier: DEFAULT_TYPES,
+        types_chantier: choisis.length ? choisis : [DEFAULT_TYPES[DEFAULT_TYPES.length-1]],
         prestations: [],
         horaires: DEFAULT_HORAIRES,
         tva_applicable: false, taux_tva: 20,
@@ -76,7 +82,7 @@ export default function Onboarding() {
     setSaving(false)
   }
 
-  const canNext = [ !!(d.nom && d.email && d.telephone), !!d.nom_entreprise ][step]
+  const canNext = [ !!(d.nom && emailOk && telOk), !!(d.nom_entreprise && activites.length > 0) ][step]
 
   // ───────── DÉMO : faux paywall (aucun paiement réel) ─────────
   if (isDemo && demoPaywall) {
@@ -170,12 +176,28 @@ export default function Onboarding() {
             <div style={{display:'flex',flexDirection:'column',gap:14}}>
               <Field label="Votre nom" val={d.nom} set={v=>set('nom',v)} ph="Jean Martin" />
               <Field label="Email" type="email" val={d.email} set={v=>set('email',v)} ph="jean@entreprise.fr" />
-              <Field label="Téléphone" type="tel" val={d.telephone} set={v=>set('telephone',v)} ph="+596 696 00 00 00" hint="Vous recevrez votre accès + vos alertes ici." />
+              <Field label="Téléphone" type="tel" val={d.telephone} set={v=>set('telephone', v.replace(/[^0-9+\s().-]/g,'').slice(0,20))} ph="0696 12 34 56" hint="Vous recevrez votre accès + vos alertes ici." />
             </div>
           )}
           {step===1 && (
             <div style={{display:'flex',flexDirection:'column',gap:14}}>
               <Field label="Nom de l'entreprise" val={d.nom_entreprise} set={v=>set('nom_entreprise',v)} ph="Martin Plomberie" />
+              <div>
+                <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:4}}>Vos activités</label>
+                <p style={{fontSize:11.5,color:'var(--text3)',marginBottom:10}}>Choisissez une ou plusieurs branches du BTP. <b>Votre site n'affichera que celles-ci</b> (ex : si vous ne faites que de la plomberie, on ne montre rien d'autre).</p>
+                <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                  {DEFAULT_TYPES.filter(t=>t.type!=='Autre').map(t=>{
+                    const on = activites.includes(t.type)
+                    return (
+                      <button key={t.type} type="button" onClick={()=>toggleActivite(t.type)}
+                        style={{display:'inline-flex',alignItems:'center',gap:6,padding:'9px 14px',borderRadius:11,fontSize:13.5,fontWeight:600,cursor:'pointer',transition:'all .15s',
+                          background:on?'var(--blue)':'var(--surface2)',color:on?'#fff':'var(--text2)',border:`1.5px solid ${on?'var(--blue)':'var(--border)'}`}}>
+                        {on && <Check size={14} />}{t.type}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
               <Field label="Zone d'intervention" val={d.zone_intervention} set={v=>set('zone_intervention',v)} ph="Fort-de-France et 20 km alentour" hint="Optionnel — affiché sur votre page client." />
               <div style={{display:'flex',flexDirection:'column',gap:8,marginTop:6}}>
                 <Benef Icon={BellRing} txt="Notifications sur votre téléphone à chaque nouvelle demande" />
@@ -210,7 +232,10 @@ function Field({ label, val, set, ph, type='text', hint }: { label:string; val:s
   return (
     <div>
       <label style={{fontSize:12,fontWeight:700,color:'var(--label)',display:'block',marginBottom:6}}>{label}</label>
-      <input type={type} value={val} onChange={e=>set(e.target.value)} placeholder={ph} className="input-field" />
+      <input type={type} value={val} onChange={e=>set(e.target.value)} placeholder={ph} className="input-field"
+        inputMode={type==='tel'?'tel':type==='email'?'email':'text'}
+        autoComplete={type==='tel'?'tel':type==='email'?'email':label.toLowerCase().includes('nom')?'name':'off'}
+        autoCapitalize={type==='email'?'none':'sentences'} spellCheck={type==='email'?false:undefined} />
       {hint && <p style={{fontSize:11.5,color:'var(--text3)',marginTop:5}}>{hint}</p>}
     </div>
   )

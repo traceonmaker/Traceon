@@ -61,7 +61,8 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
     .order('created_at', { ascending: false }).limit(6)
 
   const nom = a.nom_entreprise || a.nom
-  const services: string[] = (a.types_chantier || []).map((t: any) => t.type)
+  // On n'affiche QUE les activités réelles (le fourre-tout "Autre" reste interne)
+  const services: string[] = (a.types_chantier || []).map((t: any) => t.type).filter((t: string) => t && t !== 'Autre')
   const zone = a.zone_intervention || 'Martinique'
   const hero = HERO[services[0]] || HERO_DEFAULT
   const aReel = (vrais && vrais.length > 0)
@@ -103,17 +104,17 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
           .pst-big{ font-size:18px !important; }
         }
 
-        /* ── Survol : l'élément se soulève + un halo bleu monte derrière ── */
-        .pro-card{ position:relative; overflow:hidden; transition: transform .35s cubic-bezier(.22,1,.36,1), box-shadow .35s ease, border-color .35s ease; }
+        /* ── Survol : l'élément se soulève + une aura bleue douce et diffuse monte derrière ── */
+        .pro-card{ position:relative; transition: transform .35s cubic-bezier(.22,1,.36,1), box-shadow .35s ease, border-color .35s ease; }
         .pro-card::before{
-          content:''; position:absolute; left:50%; bottom:-70%; width:140%; height:130%;
-          transform:translateX(-50%) translateY(24px);
-          background:radial-gradient(circle at center, rgba(45,99,222,.5) 0%, transparent 60%);
-          opacity:0; transition: opacity .45s ease, transform .6s cubic-bezier(.22,1,.36,1); pointer-events:none;
+          content:''; position:absolute; inset:-40%;
+          background:radial-gradient(55% 55% at 50% 72%, rgba(45,99,222,.38) 0%, rgba(45,99,222,.14) 38%, transparent 72%);
+          opacity:0; filter:blur(22px); transform:translateY(18px);
+          transition: opacity .5s ease, transform .6s cubic-bezier(.22,1,.36,1); pointer-events:none; z-index:0;
         }
         .pro-card > *{ position:relative; z-index:1; }
-        .pro-card:hover{ transform:translateY(-6px); border-color:rgba(91,140,255,.55); box-shadow:0 22px 55px rgba(29,95,237,.32); }
-        .pro-card:hover::before{ opacity:1; transform:translateX(-50%) translateY(-12px); }
+        .pro-card:hover{ transform:translateY(-6px); border-color:rgba(91,140,255,.45); box-shadow:0 22px 55px rgba(29,95,237,.22); }
+        .pro-card:hover::before{ opacity:1; transform:translateY(0); }
 
         .pro-lift{ transition: transform .25s ease, box-shadow .25s ease, filter .25s ease; }
         .pro-lift:hover{ transform:translateY(-3px); filter:brightness(1.08); box-shadow:0 16px 42px rgba(37,99,235,.5); }
@@ -126,9 +127,13 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
 
         /* ── Avis qui défilent lentement vers la gauche ── */
         @keyframes proMarquee { from{ transform:translateX(0) } to{ transform:translateX(-50%) } }
-        .pro-marquee{ overflow:hidden; -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent); mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent); }
-        .pro-track{ display:flex; gap:14px; width:max-content; animation: proMarquee 45s linear infinite; }
+        /* padding vertical : laisse la place au soulèvement au survol (sinon le haut est coupé) */
+        .pro-marquee{ overflow:hidden; padding:22px 0; -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent); mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent); }
+        .pro-track{ display:flex; gap:14px; width:max-content; animation: proMarquee 45s linear infinite; align-items:stretch; }
         .pro-marquee:hover .pro-track{ animation-play-state:paused; }
+        /* pas d'aura diffuse sur les cartes qui défilent (elle serait coupée par le conteneur) */
+        .pro-marquee .pro-card::before{ display:none; }
+        .pro-marquee .pro-card:hover{ transform:translateY(-5px); }
         @media (prefers-reduced-motion: reduce){ .pro-track{ animation:none !important } .pro-rise{ animation:none !important } }
       `}</style>
       {/* Halos d'ambiance (flottants) */}

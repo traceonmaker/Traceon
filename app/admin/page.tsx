@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Users, TrendingUp, Euro, RefreshCw, ExternalLink, Wallet, Sparkles, Clock } from 'lucide-react'
+import { Users, TrendingUp, Euro, RefreshCw, ExternalLink, Wallet, Sparkles, Clock, Phone, MessageSquare, Mail, Ban, RotateCcw, Download, Send, Megaphone } from 'lucide-react'
 
 const eur = (n: number) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.round(n || 0)) + ' €'
 
@@ -15,6 +15,9 @@ export default function Admin() {
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const [deferred, setDeferred] = useState<any>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+
   async function charger(k: string) {
     setLoading(true); setErr('')
     try {
@@ -27,7 +30,22 @@ export default function Admin() {
   useEffect(() => {
     const k = (() => { try { return localStorage.getItem('traceon-admin-key') || '' } catch { return '' } })()
     if (k) { setKey(k); charger(k) }
+    // Manifest dédié → installable comme app séparée (ouvre /admin)
+    const link = document.createElement('link'); link.rel = 'manifest'; link.href = '/api/admin-manifest'
+    document.head.appendChild(link)
+    const onPrompt = (e: any) => { e.preventDefault(); setDeferred(e) }
+    window.addEventListener('beforeinstallprompt', onPrompt)
+    return () => { window.removeEventListener('beforeinstallprompt', onPrompt); link.remove() }
   }, [])
+
+  async function suspendre(id: string, action: 'suspendre' | 'reactiver') {
+    setBusy(id)
+    try {
+      await fetch('/api/admin/suspend', { method: 'POST', headers: { 'x-admin-key': key, 'Content-Type': 'application/json' }, body: JSON.stringify({ artisan_id: id, action }) })
+      await charger(key)
+    } finally { setBusy(null) }
+  }
+  async function installer() { if (deferred) { deferred.prompt(); await deferred.userChoice; setDeferred(null) } }
 
   const shell = (children: any) => (
     <div style={{ minHeight: '100vh', background: C.bg, color: C.txt, position: 'relative', overflow: 'hidden', fontFamily: "'SF Pro Display',-apple-system,Inter,sans-serif" }}>
@@ -59,10 +77,18 @@ export default function Admin() {
           <p style={{ fontSize: 12, color: C.accent, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Cockpit</p>
           <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.03em', marginTop: 2 }}>TraceOn — Admin</h1>
         </div>
-        <button onClick={() => charger(key)} title="Rafraîchir"
-          style={{ width: 42, height: 42, borderRadius: 13, border: `1px solid ${C.border}`, background: C.glass, color: C.txt, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <RefreshCw size={17} />
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {deferred && (
+            <button onClick={installer} title="Installer l'app"
+              style={{ height: 42, padding: '0 14px', borderRadius: 13, border: 'none', background: 'linear-gradient(135deg,#2a6af0,#1550cf)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700 }}>
+              <Download size={16} /> Installer
+            </button>
+          )}
+          <button onClick={() => charger(key)} title="Rafraîchir"
+            style={{ width: 42, height: 42, borderRadius: 13, border: `1px solid ${C.border}`, background: C.glass, color: C.txt, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <RefreshCw size={17} />
+          </button>
+        </div>
       </div>
 
       {/* MRR hero (façon "Total balance") */}
@@ -86,6 +112,8 @@ export default function Admin() {
         <Kpi Icon={TrendingUp} label="Demandes" value={`${stats.demandes}`} hint={`${stats.demandes_payees} encaissées`} />
       </div>
 
+      <Broadcast adminKey={key} />
+
       <p style={{ fontSize: 12, fontWeight: 700, color: C.mut, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Artisans</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
         {artisans.map((a: any) => (
@@ -103,6 +131,14 @@ export default function Admin() {
               <span><b style={{ color: '#4ade80' }}>{eur(a.ca)}</b> CA</span>
               {a.avis_count > 0 && <span style={{ color: '#f5b740' }}>★ {Number(a.avis_moyenne).toFixed(1)} ({a.avis_count})</span>}
               <a href={`/pro/${a.slug || a.id}`} target="_blank" rel="noreferrer" style={{ color: C.accent, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}>site <ExternalLink size={11} /></a>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              {a.telephone && <ActBtn href={`tel:${a.telephone}`} Icon={Phone} txt="Appeler" />}
+              {a.telephone && <ActBtn href={`sms:${a.telephone}`} Icon={MessageSquare} txt="SMS" />}
+              {a.email && <ActBtn href={`mailto:${a.email}`} Icon={Mail} txt="Email" />}
+              {a.abonnement_actif
+                ? <button onClick={() => suspendre(a.id, 'suspendre')} disabled={busy === a.id} style={actBtn('#ff6b6b')}><Ban size={13} /> {busy === a.id ? '…' : 'Suspendre'}</button>
+                : <button onClick={() => suspendre(a.id, 'reactiver')} disabled={busy === a.id} style={actBtn('#4ade80')}><RotateCcw size={13} /> {busy === a.id ? '…' : 'Réactiver'}</button>}
             </div>
           </div>
         ))}
@@ -136,3 +172,56 @@ function Badge({ statut, actif }: any) {
 }
 
 const btnPrimary: any = { width: '100%', padding: '13px', borderRadius: 13, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg,#2a6af0,#1550cf)' }
+
+function actBtn(color: string): any {
+  return { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color, background: `${color}1a`, border: `1px solid ${color}40`, borderRadius: 9, padding: '6px 11px', cursor: 'pointer' }
+}
+function ActBtn({ href, Icon, txt }: { href: string; Icon: any; txt: string }) {
+  return <a href={href} style={{ ...actBtn(C.accent), textDecoration: 'none' }}><Icon size={13} /> {txt}</a>
+}
+
+// Mise à jour / annonce globale à tous les artisans
+function Broadcast({ adminKey }: { adminKey: string }) {
+  const [open, setOpen] = useState(false)
+  const [msg, setMsg] = useState('')
+  const [canal, setCanal] = useState<'push' | 'sms'>('push')
+  const [sending, setSending] = useState(false)
+  const [res, setRes] = useState('')
+  async function envoyer() {
+    if (msg.trim().length < 3) return
+    if (!confirm(`Envoyer ce message à TOUS les artisans (${canal === 'sms' ? 'SMS' : 'notification'}) ?`)) return
+    setSending(true); setRes('')
+    try {
+      const r = await fetch('/api/admin/broadcast', { method: 'POST', headers: { 'x-admin-key': adminKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg, canal }) })
+      const d = await r.json()
+      setRes(r.ok ? `Envoyé à ${canal === 'sms' ? d.sms : d.push}/${d.total} artisans.` : (d.error || 'Erreur'))
+      if (r.ok) setMsg('')
+    } catch { setRes('Erreur réseau') } finally { setSending(false) }
+  }
+  return (
+    <div style={{ background: C.glass, border: `1px solid ${C.border}`, borderRadius: 18, padding: 16, marginBottom: 22, backdropFilter: 'blur(10px)' }}>
+      <button onClick={() => setOpen(o => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', color: C.txt, cursor: 'pointer', padding: 0 }}>
+        <Megaphone size={17} color={C.accent} />
+        <span style={{ fontSize: 14, fontWeight: 700 }}>Mise à jour globale</span>
+        <span style={{ marginLeft: 'auto', fontSize: 12, color: C.mut2 }}>{open ? '−' : '+'}</span>
+      </button>
+      {open && (
+        <div style={{ marginTop: 14 }}>
+          <textarea value={msg} onChange={e => setMsg(e.target.value)} rows={3} placeholder="Ex : Nouvelle fonctionnalité disponible — mettez à jour votre app."
+            style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.04)', color: C.txt, fontSize: 14, resize: 'none', outline: 'none', lineHeight: 1.5 }} />
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 3 }}>
+              {(['push', 'sms'] as const).map(c => (
+                <button key={c} onClick={() => setCanal(c)} style={{ padding: '7px 13px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, background: canal === c ? C.accent : 'transparent', color: canal === c ? '#fff' : C.mut }}>{c === 'push' ? 'Notification' : 'SMS'}</button>
+              ))}
+            </div>
+            <button onClick={envoyer} disabled={sending || msg.trim().length < 3} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 11, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#fff', background: 'linear-gradient(135deg,#2a6af0,#1550cf)', opacity: sending || msg.trim().length < 3 ? .5 : 1 }}>
+              <Send size={15} /> {sending ? 'Envoi…' : 'Envoyer à tous'}
+            </button>
+          </div>
+          {res && <p style={{ fontSize: 12.5, color: C.mut, marginTop: 10 }}>{res}</p>}
+        </div>
+      )}
+    </div>
+  )
+}

@@ -104,8 +104,8 @@ export default function Formulaire() {
           <div className="a-fadeUp">
             <StepLabel n={2} t="Vos coordonnées" s="Pour qu'on puisse vous contacter" />
             <div style={{display:'flex',flexDirection:'column',gap:12}}>
-              <F label="Nom complet" val={form.client_nom} set={v=>{setForm(f=>({...f,client_nom:v}));setErr('')}} ph="Jean Dupont" />
-              <F label="Téléphone" type="tel" val={form.client_telephone} set={v=>{setForm(f=>({...f,client_telephone:v}));setErr('')}} ph="0696 12 34 56"
+              <F label="Nom complet" val={form.client_nom} set={v=>{setForm(f=>({...f,client_nom:v.replace(/[0-9]/g,'')}));setErr('')}} ph="Jean Dupont" />
+              <F label="Téléphone" type="tel" val={form.client_telephone} set={v=>{setForm(f=>({...f,client_telephone:v.replace(/[^0-9+\s().-]/g,'').slice(0,20)}));setErr('')}} ph="0696 12 34 56"
                  ok={form.client_telephone ? isValidPhone(form.client_telephone) : undefined} />
               <F label="Adresse du chantier" val={form.client_adresse} set={v=>{setForm(f=>({...f,client_adresse:v}));setErr('')}} ph="12 rue des Fleurs, Le Robert" />
               <div>
@@ -187,6 +187,8 @@ function F({ label, val, set, ph, type='text', ok }: { label:string; val:string;
       <label style={{fontSize:12,fontWeight:600,color:'var(--text2)',display:'block',marginBottom:6}}>{label}</label>
       <div style={{position:'relative'}}>
         <input type={type} value={val} onChange={e=>set(e.target.value)} placeholder={ph} className="input-field"
+          inputMode={type==='tel'?'tel':type==='email'?'email':'text'}
+          autoComplete={type==='tel'?'tel':type==='email'?'email':label.toLowerCase().includes('nom')?'name':'off'}
           style={invalid ? {borderColor:'var(--red)',paddingRight:38} : ok ? {borderColor:'var(--green)',paddingRight:38} : undefined} />
         {ok===true && <Check size={16} color="var(--green)" style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)'}} />}
       </div>

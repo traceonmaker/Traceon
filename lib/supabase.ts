@@ -34,6 +34,16 @@ export type Artisan = {
   indisponibilites: Creneau[]
   objectif_mensuel?: number
   push_subscriptions?: any[]
+  message_relance?: string | null
+  // Site vitrine + avis
+  slug?: string | null
+  google_avis_url?: string | null
+  abonnement_statut?: string | null
+  stripe_customer_id?: string | null
+  // Capture d'appel raté
+  numero_traceon?: string | null
+  avis_moyenne?: number | null
+  avis_count?: number | null
 }
 
 // Préférence de moment de la journée par envergure de chantier

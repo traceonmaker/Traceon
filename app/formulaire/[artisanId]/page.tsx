@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { calculerPrixEstime, formatPrix } from '@/lib/utils'
+import { calculerPrixEstime, formatPrix, validerDemande, normalizePhone, isValidPhone } from '@/lib/utils'
 import type { Artisan, TypeChantier } from '@/lib/supabase'
 import { Droplet, Zap, Snowflake, Hammer, Paintbrush, Wrench, Check, CheckCircle2, ArrowRight } from 'lucide-react'
 
@@ -27,7 +27,15 @@ export default function Formulaire() {
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [token, setToken] = useState('')
+  const [err, setErr] = useState('')
   const [form, setForm] = useState<Form>({ type_intervention:'', client_nom:'', client_telephone:'', client_adresse:'', client_description:'', envergure:'' })
+
+  // Validation de l'étape coordonnées avant de continuer
+  function next2() {
+    const msg = validerDemande(form)
+    if (msg) { setErr(msg); return }
+    setErr(''); setStep(3)
+  }
 
   useEffect(() => {
     supabase.from('artisans').select('id, nom, nom_entreprise, logo_url, types_chantier, zone_intervention').eq('id', artisanId).single()
@@ -38,10 +46,15 @@ export default function Formulaire() {
     ? calculerPrixEstime(form.type_intervention, form.envergure, artisan.types_chantier) : null
 
   async function submit() {
+    const msg = validerDemande(form)
+    if (msg) { setErr(msg); setStep(2); return }
     setSubmitting(true)
-    const r = await fetch('/api/demandes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ artisan_id:artisanId, ...form }) })
+    // Normalise le téléphone en E.164 avant l'envoi (fiable pour les SMS)
+    const payload = { ...form, client_telephone: normalizePhone(form.client_telephone) }
+    const r = await fetch('/api/demandes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ artisan_id:artisanId, ...payload }) })
     const d = await r.json()
     if (r.ok) { setToken(d.token); setDone(true) }
+    else setErr(d.error || "Envoi impossible, vérifiez vos informations.")
     setSubmitting(false)
   }
 
@@ -91,15 +104,17 @@ export default function Formulaire() {
           <div className="a-fadeUp">
             <StepLabel n={2} t="Vos coordonnées" s="Pour qu'on puisse vous contacter" />
             <div style={{display:'flex',flexDirection:'column',gap:12}}>
-              <F label="Nom complet" val={form.client_nom} set={v=>setForm(f=>({...f,client_nom:v}))} ph="Jean Dupont" />
-              <F label="Téléphone" type="tel" val={form.client_telephone} set={v=>setForm(f=>({...f,client_telephone:v}))} ph="+596 696 00 00 00" />
-              <F label="Adresse du chantier" val={form.client_adresse} set={v=>setForm(f=>({...f,client_adresse:v}))} ph="12 rue des Fleurs, Le Robert" />
+              <F label="Nom complet" val={form.client_nom} set={v=>{setForm(f=>({...f,client_nom:v}));setErr('')}} ph="Jean Dupont" />
+              <F label="Téléphone" type="tel" val={form.client_telephone} set={v=>{setForm(f=>({...f,client_telephone:v}));setErr('')}} ph="0696 12 34 56"
+                 ok={form.client_telephone ? isValidPhone(form.client_telephone) : undefined} />
+              <F label="Adresse du chantier" val={form.client_adresse} set={v=>{setForm(f=>({...f,client_adresse:v}));setErr('')}} ph="12 rue des Fleurs, Le Robert" />
               <div>
                 <label style={{fontSize:12,fontWeight:600,color:'var(--text2)',display:'block',marginBottom:6}}>Description <span style={{color:'var(--text3)',fontWeight:400}}>(optionnel)</span></label>
                 <textarea rows={3} value={form.client_description} onChange={e=>setForm(f=>({...f,client_description:e.target.value}))} placeholder="Décrivez votre problème..." className="input-field" style={{resize:'none',lineHeight:1.5}} />
               </div>
             </div>
-            <Actions onBack={()=>setStep(1)} onNext={()=>setStep(3)} disabled={!form.client_nom||!form.client_telephone||!form.client_adresse} />
+            {err && <p style={{fontSize:12.5,color:'var(--red)',fontWeight:600,marginTop:12,display:'flex',alignItems:'center',gap:6}}>⚠ {err}</p>}
+            <Actions onBack={()=>setStep(1)} onNext={next2} disabled={!form.client_nom||!form.client_telephone||!form.client_adresse} />
           </div>
         )}
 
@@ -165,11 +180,16 @@ function StepLabel({ n, t, s }: { n:number; t:string; s:string }) {
     </div>
   )
 }
-function F({ label, val, set, ph, type='text' }: { label:string; val:string; set:(v:string)=>void; ph?:string; type?:string }) {
+function F({ label, val, set, ph, type='text', ok }: { label:string; val:string; set:(v:string)=>void; ph?:string; type?:string; ok?:boolean }) {
+  const invalid = ok === false
   return (
     <div>
       <label style={{fontSize:12,fontWeight:600,color:'var(--text2)',display:'block',marginBottom:6}}>{label}</label>
-      <input type={type} value={val} onChange={e=>set(e.target.value)} placeholder={ph} className="input-field" />
+      <div style={{position:'relative'}}>
+        <input type={type} value={val} onChange={e=>set(e.target.value)} placeholder={ph} className="input-field"
+          style={invalid ? {borderColor:'var(--red)',paddingRight:38} : ok ? {borderColor:'var(--green)',paddingRight:38} : undefined} />
+        {ok===true && <Check size={16} color="var(--green)" style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)'}} />}
+      </div>
     </div>
   )
 }

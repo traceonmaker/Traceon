@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const seuil = new Date(Date.now() - DELAY_H * 3600 * 1000).toISOString()
   const { data: demandes } = await supabaseAdmin
     .from('demandes')
-    .select('id, client_nom, client_telephone, token, type_intervention, artisans(nom_entreprise, nom)')
+    .select('id, client_nom, client_telephone, token, type_intervention, artisans(nom_entreprise, nom, message_relance)')
     .eq('statut', 'creneau_propose')
     .eq('relance_envoyee', false)
     .not('creneaux_envoyes_at', 'is', null)
@@ -31,13 +31,15 @@ export async function GET(req: NextRequest) {
   for (const d of (demandes || [])) {
     if (!d.client_telephone) continue
     const ent = d.artisans?.nom_entreprise || d.artisans?.nom || 'votre artisan'
+    const lien = `${url}/suivi/${d.token}`
+    // Message personnalisé par l'artisan ({client}/{entreprise}/{lien}) ou message par défaut
+    const modele = (d.artisans?.message_relance || '').trim()
+    const body = modele
+      ? modele.replace(/\{client\}/g, d.client_nom).replace(/\{entreprise\}/g, ent).replace(/\{lien\}/g, lien)
+      : `Bonjour ${d.client_nom}, avez-vous choisi un créneau pour votre ${d.type_intervention} avec ${ent} ? Réservez ici : ${lien}`
     try {
       if (client && from) {
-        await client.messages.create({
-          from,
-          to: d.client_telephone,
-          body: `Bonjour ${d.client_nom}, avez-vous choisi un créneau pour votre ${d.type_intervention} avec ${ent} ? Réservez ici : ${url}/suivi/${d.token}`,
-        })
+        await client.messages.create({ from, to: d.client_telephone, body })
       }
       await supabaseAdmin.from('demandes').update({ relance_envoyee: true }).eq('id', d.id)
       sent++

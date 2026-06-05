@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { calculerPrixEstime } from '@/lib/utils'
+import { calculerPrixEstime, validerDemande, normalizePhone } from '@/lib/utils'
 import { ownsArtisan } from '@/lib/auth'
 import { sendPush } from '@/lib/push'
 
@@ -22,7 +22,12 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { artisan_id, client_nom, client_telephone, client_adresse, client_description, type_intervention, envergure } = body
+  const { artisan_id, client_nom, client_adresse, client_description, type_intervention, envergure } = body
+
+  // Validation serveur (défense en profondeur) + normalisation du téléphone
+  const erreur = validerDemande(body)
+  if (erreur) return NextResponse.json({ error: erreur }, { status: 400 })
+  const client_telephone = normalizePhone(body.client_telephone)
 
   const { data: artisan } = await supabaseAdmin
     .from('artisans').select('types_chantier, nom_entreprise, nom').eq('id', artisan_id).single()

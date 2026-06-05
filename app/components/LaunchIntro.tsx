@@ -1,9 +1,9 @@
 'use client'
 import { useEffect } from 'react'
-import { Check } from 'lucide-react'
 
-/** Animation de premier lancement : déblocage de la marque + plongée dans l'app. */
-export default function LaunchIntro({ onDone }: { onDone: () => void }) {
+/** Animation de premier lancement façon Apple : « Bonjour » + nom de l'entreprise,
+ *  puis plongée dans l'app. */
+export default function LaunchIntro({ onDone, nom }: { onDone: () => void; nom?: string }) {
   useEffect(() => {
     const reduce = typeof window !== 'undefined'
       && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -13,8 +13,8 @@ export default function LaunchIntro({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="intro-overlay" role="presentation">
-      <div className="intro-mark"><Check size={50} color="#fff" strokeWidth={3} /></div>
-      <div className="intro-word">TraceOn</div>
+      <div className="intro-hello">Bonjour</div>
+      {nom && <div className="intro-word">{nom}</div>}
       <div className="intro-tag">Votre business, sous contrôle</div>
     </div>
   )

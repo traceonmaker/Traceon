@@ -494,8 +494,12 @@ input, textarea, select, button { font-family: inherit; letter-spacing: inherit;
 [data-theme="dark"] .skel { background: linear-gradient(90deg, #171b22 25%, #1f242d 37%, #171b22 63%); background-size:200% 100%; }
 [data-theme="dark"] .date-badge { background: var(--blue-dim); border-color: var(--blue-mid); }
 
-/* Transition douce lors du basculement de thème */
-body, .card, .fab, .bottom-nav, .input-field, .btn-ghost { transition: background-color .25s ease, border-color .25s ease, color .25s ease; }
+/* Bascule de thème : on ne fait fondre QUE le fond de page.
+   Transitionner chaque carte/champ/fab déclenchait une tempête de repaint
+   (lag visible au switch) → on les laisse basculer instantanément, façon iOS. */
+body { transition: background-color .28s ease, color .28s ease; }
+/* Pendant le switch, on neutralise toute transition résiduelle pour un rendu net */
+html.theme-switching * { transition: none !important; }
 
 /* ───────── Célébration "Encaissé" (confetti) ───────── */
 @keyframes confettiFall {
@@ -530,8 +534,13 @@ body, .card, .fab, .bottom-nav, .input-field, .btn-ghost { transition: backgroun
   background: rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center;
   animation: introMarkIn .65s cubic-bezier(.22,1,.36,1) both, introGlow 1.5s ease-out .45s;
 }
-.intro-word { color:#fff; font-size:30px; font-weight:800; letter-spacing:3px; margin-top:24px; animation: introText .55s ease .4s both; }
-.intro-tag  { color:rgba(255,255,255,0.82); font-size:14px; margin-top:6px; animation: introText .55s ease .6s both; }
+/* « Bonjour » façon Apple : grand, fin, élégant */
+.intro-hello {
+  color:#fff; font-size:52px; font-weight:300; letter-spacing:-0.02em;
+  animation: introMarkIn .7s cubic-bezier(.22,1,.36,1) both;
+}
+.intro-word { color:#fff; font-size:26px; font-weight:800; letter-spacing:-0.01em; margin-top:14px; animation: introText .55s ease .45s both; }
+.intro-tag  { color:rgba(255,255,255,0.78); font-size:14px; margin-top:8px; animation: introText .55s ease .65s both; }
 
 /* ───────── Accessibilité : respect de "réduire les animations" ───────── */
 @media (prefers-reduced-motion: reduce) {

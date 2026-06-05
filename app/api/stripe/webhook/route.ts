@@ -4,8 +4,9 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
-// Statuts considérés comme "accès actif" (essai inclus)
-const ACTIFS = ['trialing', 'active', 'past_due']
+// Statuts donnant accès : essai en cours OU abonnement payé.
+// 'past_due'/'unpaid'/'canceled' = pas payé → accès coupé immédiatement (décision produit).
+const ACTIFS = ['trialing', 'active']
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
@@ -52,6 +53,15 @@ export async function POST(req: NextRequest) {
     case 'customer.subscription.updated':
     case 'customer.subscription.deleted': {
       await syncSubscription(event.data.object)
+      break
+    }
+    // Paiement échoué → coupe l'accès tout de suite (on ne tolère pas l'impayé)
+    case 'invoice.payment_failed': {
+      const inv = event.data.object
+      if (inv.subscription) {
+        const sub = await stripe.subscriptions.retrieve(inv.subscription as string)
+        await syncSubscription(sub)
+      }
       break
     }
   }

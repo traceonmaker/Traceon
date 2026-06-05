@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { slugify } from '@/lib/utils'
 import twilio from 'twilio'
 
 export const runtime = 'nodejs'
+
+// Génère un slug unique pour le mini-site (collision → suffixe court)
+async function slugUnique(nom: string): Promise<string> {
+  const base = slugify(nom)
+  for (let i = 0; i < 6; i++) {
+    const candidat = i === 0 ? base : `${base}-${Math.random().toString(16).slice(2, 6)}`
+    const { data } = await supabaseAdmin.from('artisans').select('id').eq('slug', candidat).maybeSingle()
+    if (!data) return candidat
+  }
+  return `${base}-${Date.now().toString(36)}`
+}
 
 // Mot de passe initial lisible (envoyé par SMS) — l'artisan pourra le changer dans l'app
 function genPassword() {
@@ -33,10 +45,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Cet email a déjà un compte. Connectez-vous.' }, { status: 409 })
   }
 
-  // 2. Fiche artisan
+  // 2. Fiche artisan (avec slug de mini-site)
+  const slug = await slugUnique(body.nom_entreprise || body.nom || 'pro')
   const { data, error } = await supabaseAdmin.from('artisans').insert({
     nom: body.nom,
     nom_entreprise: body.nom_entreprise,
+    slug,
     email,
     telephone: body.telephone,
     logo_url: body.logo_url || null,

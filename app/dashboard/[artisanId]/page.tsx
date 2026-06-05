@@ -12,13 +12,17 @@ import {
   Home, CalendarDays, Clock, BarChart3, Settings, Phone, MapPin, Check,
   Link2, Plus, Trash2, Droplet, Zap, Snowflake, Hammer, Paintbrush, Wrench,
   ChevronLeft, ChevronRight, TrendingUp, Save, Upload, Copy,
-  Euro, Briefcase, Receipt, Percent, FileText, Download, Sun, Moon, Monitor, BellRing, RotateCcw
+  Euro, Briefcase, Receipt, Percent, FileText, Download, Sun, Moon, Monitor, BellRing, RotateCcw, Star
 } from 'lucide-react'
 import InstallPrompt from '@/app/components/InstallPrompt'
 import PushSetup from '@/app/components/PushSetup'
 
 type Tab = 'accueil'|'planning'|'bilan'|'parametres'
 const TABS: Tab[] = ['accueil','planning','bilan','parametres']
+
+// Sélecteur de jour (modal créneaux) : on montre la semaine en cours + au-delà,
+// déroulant sur 4 semaines, centré par défaut sur les prochains jours.
+const JOURS_VISIBLES = 28
 
 const SVC: Record<string,{Icon:any;color:string}> = {
   'Plomberie':     { Icon:Droplet,   color:'#2563eb' },
@@ -66,6 +70,17 @@ function whenLabel(d: Demande): string {
   return heure ? `${j} ${heure}` : j
 }
 
+// Libellé humain d'un créneau pour l'artisan : "Demain · 14h–18h" (lecture instantanée,
+// au lieu de la date brute à slashes — celle-ci reste dans le récap envoyé au client)
+function creneauLisible(date: string, hd?: string, hf?: string): string {
+  if (!date) return 'Choisir un jour'
+  const j = isToday(date) ? "Aujourd'hui" : isTomorrow(date) ? 'Demain'
+    : new Date(date + 'T00:00').toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' })
+  const jc = j.charAt(0).toUpperCase() + j.slice(1)
+  const h = hd ? ` · ${formatHeure(hd)}${hf ? '–' + formatHeure(hf) : ''}` : ''
+  return jc + h
+}
+
 // Thème clair / sombre / système
 type Theme = 'system'|'light'|'dark'
 const getTheme = (): Theme => { try { return (localStorage.getItem('traceon-theme') as Theme) || 'system' } catch { return 'system' } }
@@ -73,8 +88,12 @@ const applyTheme = (t: Theme) => {
   try { localStorage.setItem('traceon-theme', t) } catch {}
   const dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
   const el = document.documentElement
+  // Neutralise les transitions le temps du basculement → switch net, sans lag
+  el.classList.add('theme-switching')
   el.setAttribute('data-theme', dark ? 'dark' : 'light')
   el.style.colorScheme = dark ? 'dark' : 'light'
+  // Force un reflow puis réactive les transitions au frame suivant
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove('theme-switching')))
 }
 
 // Salutation selon l'heure
@@ -116,6 +135,7 @@ export default function Dashboard() {
   const [tab, setTab] = useState<Tab>('accueil')
   const [dir, setDir] = useState(1)
   const [demandes, setDemandes] = useState<Demande[]>([])
+  const [avis, setAvis] = useState<any[]>([])
   const [artisan, setArtisan] = useState<Artisan|null>(null)
   const [loading, setLoading] = useState(true)
   const [validating] = useState<string|null>(null)
@@ -168,6 +188,8 @@ export default function Dashboard() {
       const r = await authedFetch(`/api/demandes?artisan_id=${artisan.id}`)
       if (!r.ok) throw new Error()
       setDemandes(await r.json())
+      // Avis (best-effort, n'empêche rien si ça échoue)
+      authedFetch(`/api/avis?artisan_id=${artisan.id}`).then(async rr => { if (rr.ok) setAvis(await rr.json()) }).catch(()=>{})
     } catch {
       setToast(s => s || { msg:'Connexion impossible' })
     } finally {
@@ -251,8 +273,10 @@ export default function Dashboard() {
     }
   }
   function copyLink() {
-    navigator.clipboard.writeText(`${window.location.origin}/formulaire/${artisan!.id}`)
-    setLinkCopied(true); haptic(8); setToast({ msg:'Lien client copié' })
+    // Lien à diffuser partout (bio Insta, WhatsApp, camion) → mini-site vitrine + bouton devis
+    const slug = (artisan as any)!.slug || artisan!.id
+    navigator.clipboard.writeText(`${window.location.origin}/pro/${slug}`)
+    setLinkCopied(true); haptic(8); setToast({ msg:'Lien de votre site copié' })
     setTimeout(()=>setLinkCopied(false),1600)
   }
   async function resetDemo() {
@@ -292,7 +316,7 @@ export default function Dashboard() {
 
   return (
     <div style={{minHeight:'100vh',background:'var(--bg-grad)',position:'relative'}}>
-      {showIntro && <LaunchIntro onDone={()=>setShowIntro(false)} />}
+      {showIntro && <LaunchIntro onDone={()=>setShowIntro(false)} nom={artisan.nom_entreprise || artisan.nom} />}
       <div className="app-glow" />
       <div style={{maxWidth:480,margin:'0 auto',padding:'20px 16px calc(124px + env(safe-area-inset-bottom))',position:'relative',zIndex:1}}>
 
@@ -311,8 +335,8 @@ export default function Dashboard() {
             {isDemo && <button onClick={resetDemo} className="fab" style={{width:40,height:40}} title="Réinitialiser la démo" aria-label="Réinitialiser la démo"><RotateCcw size={16} /></button>}
             <button
               onClick={copyLink}
-              className="fab" style={{width:'auto',padding:'0 14px',gap:7,fontSize:13,fontWeight:600}} title="Copier le lien de demande client">
-              {linkCopied ? <><Check size={16} color="var(--green)"/>Copié</> : <><Link2 size={16}/>Lien client</>}
+              className="fab" style={{width:'auto',padding:'0 14px',gap:7,fontSize:13,fontWeight:600}} title="Copier le lien de votre site (à mettre partout)">
+              {linkCopied ? <><Check size={16} color="var(--green)"/>Copié</> : <><Link2 size={16}/>Mon site</>}
             </button>
           </div>
         </div>
@@ -320,7 +344,7 @@ export default function Dashboard() {
         <div key={tab} className={`tab-pane ${dir>0?'fwd':'back'}`}>
           {tab==='accueil'     && <Accueil nouvelles={nouvelles} encaisse={encaisseAffiche} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} onShare={copyLink} onSupprimer={supprimer} objectif={artisan.objectif_mensuel ?? 5000} />}
           {tab==='planning'    && <Planning confirmes={confirmes} artisan={artisan} save={saveArtisan} />}
-          {tab==='bilan'       && <Bilan payes={payes} demandes={demandes} encaisse={encaisse} />}
+          {tab==='bilan'       && <Bilan payes={payes} demandes={demandes} encaisse={encaisse} avis={avis} />}
           {tab==='parametres'  && <Parametres artisan={artisan} save={saveArtisan} />}
         </div>
       </div>
@@ -420,7 +444,7 @@ function Paywall({ artisan }: { artisan:Artisan }) {
         <button onClick={abonner} disabled={loading} className="btn-primary" style={{height:50,fontSize:15}}>
           {loading ? <span className="spinner spinner-w" /> : 'Démarrer mes 7 jours gratuits'}
         </button>
-        <p style={{fontSize:11,color:'var(--text3)',marginTop:12}}>7 jours gratuits, puis 250 €/mois · Sans engagement, annulable en 1 clic</p>
+        <p style={{fontSize:11,color:'var(--text3)',marginTop:12}}>7 jours gratuits, puis 250 €/mois · Renouvellement automatique (recommandé) · Annulable en 1 clic</p>
       </div>
     </div>
   )
@@ -686,17 +710,22 @@ function Planning({ confirmes, artisan, save }: { confirmes:Demande[]; artisan:A
 
 /* ───────── HISTORIQUE ───────── */
 /* ───────── BILAN (Historique + Stats fusionnés) ───────── */
-function Bilan({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demande[]; encaisse:number }) {
-  const [sub, setSub] = useState<'historique'|'stats'>('historique')
+function Bilan({ payes, demandes, encaisse, avis }: { payes:Demande[]; demandes:Demande[]; encaisse:number; avis:any[] }) {
+  const ORD = ['historique','avis','stats'] as const
+  type Sub = typeof ORD[number]
+  const [sub, setSub] = useState<Sub>('historique')
   const [dir, setDir] = useState(1)
   const touchRef = useRef<{x:number;y:number}|null>(null)
-  const go = (k:'historique'|'stats') => { setDir(k==='stats'?1:-1); haptic(5); setSub(k) }
+  const go = (k:Sub) => { setDir(ORD.indexOf(k) >= ORD.indexOf(sub) ? 1 : -1); haptic(5); setSub(k) }
   const onEnd = (e: React.TouchEvent) => {
     const t = touchRef.current; touchRef.current = null; if (!t) return
     const dx = e.changedTouches[0].clientX - t.x, dy = e.changedTouches[0].clientY - t.y
-    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) { if (dx < 0) go('stats'); else go('historique') }
+    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      const i = ORD.indexOf(sub)
+      if (dx < 0 && i < ORD.length-1) go(ORD[i+1]); else if (dx > 0 && i > 0) go(ORD[i-1])
+    }
   }
-  const segs = [{ k:'historique', label:'Historique', count:payes.length }, { k:'stats', label:'Stats', count:0 }] as const
+  const segs = [{ k:'historique', label:'Historique', count:payes.length }, { k:'avis', label:'Avis', count:avis.length }, { k:'stats', label:'Stats', count:0 }] as const
   return (
     <div onTouchStart={e=>{ touchRef.current = { x:e.touches[0].clientX, y:e.touches[0].clientY } }} onTouchEnd={onEnd} style={{minHeight:'72vh',touchAction:'pan-y'}}>
       <div style={{display:'flex',gap:4,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:14,padding:4,marginBottom:10}}>
@@ -711,12 +740,52 @@ function Bilan({ payes, demandes, encaisse }: { payes:Demande[]; demandes:Demand
         })}
       </div>
       <div style={{position:'relative',height:4,marginBottom:14}}>
-        <div style={{position:'absolute',top:0,left:`${((sub==='historique'?0:1)+0.5)*50}%`,transform:'translateX(-50%)',width:40,height:4,borderRadius:2,background:'var(--text3)',transition:'left .32s cubic-bezier(.22,1,.36,1)'}} />
+        <div style={{position:'absolute',top:0,left:`${(ORD.indexOf(sub)+0.5)*(100/3)}%`,transform:'translateX(-50%)',width:40,height:4,borderRadius:2,background:'var(--text3)',transition:'left .32s cubic-bezier(.22,1,.36,1)'}} />
       </div>
       <div key={sub} className={`tab-pane ${dir>0?'fwd':'back'}`}>
         {sub==='historique' && <Historique payes={payes} encaisse={encaisse} />}
+        {sub==='avis' && <AvisListe avis={avis} />}
         {sub==='stats' && <Stats payes={payes} demandes={demandes} encaisse={encaisse} />}
       </div>
+    </div>
+  )
+}
+
+/* ───────── AVIS (vue artisan : "Mes avis") ───────── */
+function AvisListe({ avis }: { avis:any[] }) {
+  const count = avis.length
+  const moyenne = count ? Math.round((avis.reduce((s,a)=>s+(a.note||0),0)/count)*10)/10 : 0
+  return (
+    <div>
+      <div className="hero-card a-scaleIn" style={{padding:'20px 22px',marginBottom:16}}>
+        <div style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div>
+            <p style={{fontSize:13,opacity:.85,marginBottom:5}}>Note moyenne</p>
+            <p className="amount-hero" style={{fontSize:38}}>{count ? moyenne.toFixed(1) : '—'}</p>
+            <p style={{fontSize:12,opacity:.8,marginTop:4}}>{count} avis client{count>1?'s':''}</p>
+          </div>
+          <div style={{display:'flex',gap:3}}>
+            {Array.from({length:5}).map((_,k)=><Star key={k} size={20} color="#fbbf24" fill={k<Math.round(moyenne)?'#fbbf24':'rgba(255,255,255,0.25)'} />)}
+          </div>
+        </div>
+      </div>
+      <SectionTitle title="Mes avis" />
+      {count===0
+        ? <Empty Icon={Star} title="Pas encore d'avis" sub="Après chaque chantier validé, vos clients reçoivent une demande d'avis par SMS." />
+        : <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            {avis.map((a,i)=>(
+              <div key={a.id||i} className="card" style={{padding:15}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+                  <div style={{display:'flex',gap:2}}>
+                    {Array.from({length:5}).map((_,k)=><Star key={k} size={15} color="#f59e0b" fill={k<a.note?'#f59e0b':'none'} />)}
+                  </div>
+                  {!a.affiche && <span style={{fontSize:10,fontWeight:700,color:'var(--text3)',background:'var(--surface2)',padding:'2px 7px',borderRadius:7}}>masqué du site</span>}
+                </div>
+                {a.commentaire && <p style={{fontSize:14,color:'var(--text2)',lineHeight:1.5}}>“{a.commentaire}”</p>}
+                <p style={{fontSize:12,color:'var(--text3)',marginTop:8,fontWeight:600}}>{a.client_nom || 'Client'} · {new Date(a.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</p>
+              </div>
+            ))}
+          </div>}
     </div>
   )
 }
@@ -954,9 +1023,9 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
     cgv: artisan.cgv||'', rgpd: artisan.rgpd||'',
     preferences_creneaux: artisan.preferences_creneaux || { grand:'matin', moyen:'flexible', petit:'apres-midi' },
     objectif_mensuel: artisan.objectif_mensuel ?? 5000,
+    message_relance: artisan.message_relance || '',
+    google_avis_url: artisan.google_avis_url || '',
   })
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const set = (k:keyof Artisan, v:any) => setF(p=>({...p,[k]:v}))
   const types = f.types_chantier as TypeChantier[]
   const prest = f.prestations as Prestation[]
@@ -964,9 +1033,6 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
   const JOURS = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche']
   const JL: Record<string,string> = {lundi:'Lun',mardi:'Mar',mercredi:'Mer',jeudi:'Jeu',vendredi:'Ven',samedi:'Sam',dimanche:'Dim'}
 
-  async function handleSave() {
-    setSaving(true); await save(f); setSaving(false); setSaved(true); setTimeout(()=>setSaved(false),2000)
-  }
   function logoUpload(file: File) { const r=new FileReader(); r.onload=()=>set('logo_url',r.result as string); r.readAsDataURL(file) }
 
   return (
@@ -977,7 +1043,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
 
       <Section title="Notifications" defaultOpen><PushSetup artisanId={artisan.id} /></Section>
 
-      <Section title="Objectif mensuel" defaultOpen>
+      <Section title="Objectif mensuel" defaultOpen onSave={()=>save(f)}>
         <p style={{fontSize:13,color:'var(--text2)',marginBottom:10,lineHeight:1.5}}>Le montant à atteindre ce mois — l'anneau de progression se remplit à mesure que vous encaissez.</p>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <input type="number" value={f.objectif_mensuel as number} onChange={e=>set('objectif_mensuel', +e.target.value)} className="input-field" style={{maxWidth:160}} />
@@ -986,7 +1052,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       </Section>
 
       {/* Entreprise */}
-      <Section title="Entreprise">
+      <Section title="Entreprise" onSave={()=>save(f)}>
         <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:14}}>
           <label style={{cursor:'pointer'}}>
             <div style={{width:56,height:56,borderRadius:14,border:'2px dashed var(--border2)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:'var(--surface2)'}}>
@@ -1003,11 +1069,19 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
           <Field label="SIRET" val={f.siret} set={(v:any)=>set('siret',v)} />
           <Field label="Adresse" val={f.adresse_entreprise} set={(v:any)=>set('adresse_entreprise',v)} />
           <Field label="Zone d'intervention" val={f.zone_intervention} set={(v:any)=>set('zone_intervention',v)} />
+          <Field label="Lien avis Google (pour booster votre référencement)" val={f.google_avis_url} set={(v:any)=>set('google_avis_url',v)} />
+        </div>
+        <div style={{marginTop:14,background:'var(--blue-dim)',border:'1px solid var(--blue-mid)',borderRadius:12,padding:'12px 14px'}}>
+          <p style={{fontSize:12,fontWeight:700,color:'var(--blue-600)',marginBottom:4}}>Votre site est en ligne 🌐</p>
+          <a href={`/pro/${(artisan as any).slug || artisan.id}`} target="_blank" rel="noreferrer" style={{fontSize:12.5,color:'var(--blue)',fontWeight:600,wordBreak:'break-all'}}>
+            {typeof window!=='undefined'?window.location.origin:''}/pro/{(artisan as any).slug || artisan.id}
+          </a>
+          <p style={{fontSize:11,color:'var(--text2)',marginTop:6,lineHeight:1.5}}>Mettez ce lien partout (bio Instagram, WhatsApp, carte de visite, camion).</p>
         </div>
       </Section>
 
       {/* Services & tarifs */}
-      <Section title="Services & tarifs" action={<button onClick={()=>set('types_chantier',[...types,{type:'Nouveau',couleur:'#64748b',duree:2,prix_base:100}])} className="fab" style={{width:32,height:32}}><Plus size={16}/></button>}>
+      <Section title="Services & tarifs" onSave={()=>save(f)} action={<button onClick={()=>set('types_chantier',[...types,{type:'Nouveau',couleur:'#64748b',duree:2,prix_base:100}])} className="fab" style={{width:32,height:32}}><Plus size={16}/></button>}>
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           {types.map((t,i)=>(
             <div key={i} style={{background:'var(--surface2)',borderRadius:13,padding:12,border:'1px solid var(--border)'}}>
@@ -1026,7 +1100,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       </Section>
 
       {/* Grille tarifaire détaillée */}
-      <Section title="Grille tarifaire détaillée" action={<button onClick={()=>set('prestations',[...prest,{service:types[0]?.type||'Autre',libelle:'',prix:0,unite:'forfait'}])} className="fab" style={{width:32,height:32}}><Plus size={16}/></button>}>
+      <Section title="Grille tarifaire détaillée" onSave={()=>save(f)} action={<button onClick={()=>set('prestations',[...prest,{service:types[0]?.type||'Autre',libelle:'',prix:0,unite:'forfait'}])} className="fab" style={{width:32,height:32}}><Plus size={16}/></button>}>
         {prest.length===0 && <p style={{fontSize:12,color:'var(--text3)',textAlign:'center',padding:'8px 0'}}>Aucune prestation détaillée.</p>}
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           {prest.map((p,i)=>(
@@ -1060,7 +1134,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       </Section>
 
       {/* Horaires */}
-      <Section title="Horaires de travail">
+      <Section title="Horaires de travail" onSave={()=>save(f)}>
         {JOURS.map((j,i)=>{ const h=hr[j]; return (
           <div key={j} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:i<6?'1px solid var(--border)':'none',opacity:h.actif?1:0.5}}>
             <button onClick={()=>set('horaires',{...hr,[j]:{...h,actif:!h.actif}})} style={{width:40,height:23,borderRadius:12,border:'none',cursor:'pointer',background:h.actif?'var(--blue)':'var(--border2)',position:'relative',flexShrink:0}}>
@@ -1077,7 +1151,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       </Section>
 
       {/* Préférences de créneaux */}
-      <Section title="Préférences de créneaux">
+      <Section title="Préférences de créneaux" onSave={()=>save(f)}>
         <p style={{fontSize:12,color:'var(--text2)',marginBottom:14,lineHeight:1.5}}>
           Selon la taille du chantier, l'app proposera automatiquement des créneaux au bon moment de la journée.
         </p>
@@ -1110,7 +1184,7 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       </Section>
 
       {/* Légal & devis */}
-      <Section title="Légal & devis">
+      <Section title="Légal & devis" onSave={()=>save(f)}>
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <Field label="Modèle de devis (lien PDF)" val={f.modele_devis_url} set={(v:any)=>set('modele_devis_url',v)} />
           <Area label="Conditions de paiement" val={f.conditions_paiement} set={(v:any)=>set('conditions_paiement',v)} />
@@ -1120,9 +1194,37 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
         </div>
       </Section>
 
-      <button onClick={handleSave} disabled={saving} className="btn-primary">
-        {saving ? <span className="spinner spinner-w" /> : saved ? <><Check size={17}/>Enregistré</> : <><Save size={17}/>Enregistrer</>}
-      </button>
+      {/* Message de relance personnalisable */}
+      <Section title="Message de relance" onSave={()=>save(f)}>
+        <p style={{fontSize:13,color:'var(--text2)',marginBottom:10,lineHeight:1.5}}>
+          Le SMS envoyé automatiquement au client qui n'a pas répondu après l'envoi de vos créneaux.
+          Écrivez <b>{'{client}'}</b>, <b>{'{entreprise}'}</b> et <b>{'{lien}'}</b> — ils seront remplacés automatiquement.
+        </p>
+        <textarea value={f.message_relance as string} onChange={e=>set('message_relance', e.target.value)} rows={4}
+          placeholder={"Bonjour {client}, avez-vous choisi un créneau pour votre intervention avec {entreprise} ? Réservez ici : {lien}"}
+          className="input-field" style={{resize:'none',lineHeight:1.5}} />
+        <p style={{fontSize:11,color:'var(--text3)',marginTop:8}}>Laissez vide pour utiliser le message par défaut.</p>
+      </Section>
+
+      {/* Capture d'appel raté */}
+      <Section title="Capture d'appel">
+        {(artisan as any).numero_traceon ? (
+          <>
+            <p style={{fontSize:13,color:'var(--text2)',marginBottom:10,lineHeight:1.5}}>Votre numéro TraceOn — affichez-le partout. Les appels arrivent sur votre téléphone ; si vous ne décrochez pas, le client reçoit un SMS avec votre lien.</p>
+            <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--blue-dim)',border:'1px solid var(--blue-mid)',borderRadius:12,padding:'12px 14px'}}>
+              <Phone size={18} color="var(--blue)" />
+              <span style={{fontSize:16,fontWeight:800,letterSpacing:'-0.01em'}}>{(artisan as any).numero_traceon}</span>
+            </div>
+          </>
+        ) : (
+          <p style={{fontSize:13,color:'var(--text2)',lineHeight:1.5}}>
+            Bientôt : un numéro TraceOn qui renvoie vers votre téléphone et <b>rattrape chaque appel manqué</b> par SMS — pour ne plus jamais perdre un client. Activation sur demande.
+          </p>
+        )}
+      </Section>
+
+      {/* Abonnement */}
+      <AbonnementSection artisan={artisan} />
 
       {/* Installer l'application */}
       <InstallSection />
@@ -1139,6 +1241,42 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
         <button onClick={async ()=>{ haptic(8); await supabase.auth.signOut(); router.replace('/login') }} className="btn-ghost" style={{color:'var(--red)',marginTop:16}}>Se déconnecter</button>
       </Section>
     </div>
+  )
+}
+
+/* Section "Abonnement" — état + portail Stripe (renouvellement / annulation) */
+function AbonnementSection({ artisan }: { artisan:Artisan }) {
+  const [loading, setLoading] = useState(false)
+  const statut = (artisan as any).abonnement_statut as string | undefined
+  const label: Record<string,{txt:string;color:string}> = {
+    trialing: { txt:'Essai gratuit en cours', color:'var(--blue)' },
+    active:   { txt:'Abonnement actif', color:'var(--green)' },
+    past_due: { txt:'Paiement en échec — accès suspendu', color:'var(--red)' },
+    canceled: { txt:'Abonnement annulé', color:'var(--red)' },
+  }
+  const s = statut ? (label[statut] || { txt:statut, color:'var(--text2)' }) : { txt: artisan.abonnement_actif ? 'Actif' : 'Inactif', color: artisan.abonnement_actif?'var(--green)':'var(--text3)' }
+  async function portail() {
+    setLoading(true)
+    try {
+      const r = await authedFetch('/api/stripe/portal', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ artisan_id: artisan.id }) })
+      const d = await r.json()
+      if (d.url) window.location.href = d.url; else setLoading(false)
+    } catch { setLoading(false) }
+  }
+  return (
+    <Section title="Abonnement">
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+        <span style={{width:9,height:9,borderRadius:'50%',background:s.color,flexShrink:0}} />
+        <span style={{fontSize:13,fontWeight:700,color:s.color}}>{s.txt}</span>
+      </div>
+      <p style={{fontSize:12.5,color:'var(--text2)',marginBottom:14,lineHeight:1.5}}>
+        250 € / mois · <b>renouvellement automatique (recommandé)</b>. Gérez votre moyen de paiement,
+        le renouvellement ou l'annulation à tout moment.
+      </p>
+      <button onClick={portail} disabled={loading} className="btn-ghost" style={{width:'100%'}}>
+        {loading ? <span className="spinner" /> : <><Receipt size={16}/>Gérer mon abonnement</>}
+      </button>
+    </Section>
   )
 }
 
@@ -1178,7 +1316,7 @@ function InstallSection() {
     </Section>
   )
 }
-function Section({ title, action, children, defaultOpen=false }: { title:string; action?:React.ReactNode; children:React.ReactNode; defaultOpen?:boolean }) {
+function Section({ title, action, children, defaultOpen=false, onSave }: { title:string; action?:React.ReactNode; children:React.ReactNode; defaultOpen?:boolean; onSave?:()=>Promise<void> }) {
   const [open, toggle] = useCollapse('sec-' + title, defaultOpen)
   return (
     <div className="card" style={{padding:18}}>
@@ -1193,7 +1331,19 @@ function Section({ title, action, children, defaultOpen=false }: { title:string;
         </div>
       </div>
       {open && children}
+      {open && onSave && <SectionSave onSave={onSave} />}
     </div>
+  )
+}
+
+// Bouton "Enregistrer" propre à chaque section (sauvegarde directe sans descendre en bas de page)
+function SectionSave({ onSave }: { onSave:()=>Promise<void> }) {
+  const [state, setState] = useState<'idle'|'saving'|'saved'>('idle')
+  return (
+    <button onClick={async()=>{ setState('saving'); await onSave(); haptic(8); setState('saved'); setTimeout(()=>setState('idle'),1800) }}
+      disabled={state==='saving'} className="btn-primary" style={{marginTop:16,height:42,fontSize:13}}>
+      {state==='saving' ? <span className="spinner spinner-w" /> : state==='saved' ? <><Check size={16}/>Enregistré</> : <><Save size={16}/>Enregistrer</>}
+    </button>
   )
 }
 function Field({ label, val, set, type='text' }: { label:string; val:any; set:(v:string)=>void; type?:string }) {
@@ -1474,10 +1624,13 @@ function ModalCreneaux({ d, artisan, confirmes, onClose, onProposer }: { d:Deman
           </div>
         )}
 
-        {/* Aperçu calendrier — votre semaine (cliquez un jour pour le choisir) */}
-        <p style={{fontSize:11,fontWeight:700,color:'var(--label)',letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:8}}>Votre semaine</p>
-        <div style={{display:'flex',gap:6,overflowX:'auto',marginBottom:16,paddingBottom:4}}>
-          {Array.from({length:7},(_,i)=>{
+        {/* Sélecteur de jour — centré sur la semaine, mais déroulant aussi loin que voulu */}
+        <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:8}}>
+          <p style={{fontSize:11,fontWeight:700,color:'var(--label)',letterSpacing:'0.06em',textTransform:'uppercase'}}>Choisir un jour</p>
+          <span style={{fontSize:10,color:'var(--text3)'}}>faites défiler →</span>
+        </div>
+        <div style={{display:'flex',gap:6,overflowX:'auto',marginBottom:16,paddingBottom:4,scrollSnapType:'x proximity'}}>
+          {Array.from({length:JOURS_VISIBLES},(_,i)=>{
             const x=new Date(); x.setHours(0,0,0,0); x.setDate(x.getDate()+i)
             const ds=x.toDateString(); const iso=x.toISOString().split('T')[0]
             const jour=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'][x.getDay()]
@@ -1486,22 +1639,28 @@ function ModalCreneaux({ d, artisan, confirmes, onClose, onProposer }: { d:Deman
             const nbInd=((artisan.indisponibilites as any[])||[]).filter(b=>b.date===iso).length
             const occupe=nbCh+nbInd
             const libre=!ferme && occupe===0
+            const choisi=creneaux.some(c=>c.date===iso)
+            // Séparateur léger au début de chaque nouvelle semaine (lundi), sauf le 1er
+            const nouvelleSemaine = i>0 && x.getDay()===1
             return (
-              <button key={i} onClick={()=>setCreneaux(p=>{ const idx=p.findIndex(c=>!c.date); const t=idx>=0?idx:0; return p.map((c,j)=>j===t?{...c,date:iso}:c) })}
-                style={{flexShrink:0,width:52,padding:'8px 0',borderRadius:11,border:`1px solid ${libre?'#a7f3d0':occupe?'#fecaca':'var(--border)'}`,background:ferme?'var(--surface2)':libre?'var(--green-dim)':'var(--red-dim)',cursor:'pointer',textAlign:'center'}}>
-                <div style={{fontSize:10,fontWeight:700,color:'var(--text3)',textTransform:'uppercase'}}>{['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][x.getDay()]}</div>
-                <div style={{fontSize:17,fontWeight:800,color:'var(--text)'}}>{x.getDate()}</div>
-                <div style={{fontSize:9,fontWeight:600,color:ferme?'var(--text3)':libre?'var(--green)':'var(--red)'}}>{ferme?'Fermé':libre?'Libre':`${occupe} pris`}</div>
-              </button>
+              <div key={i} style={{display:'flex',alignItems:'stretch',gap:6,flexShrink:0,scrollSnapAlign:'start'}}>
+                {nouvelleSemaine && <div style={{width:1,background:'var(--border2)',margin:'4px 0',flexShrink:0}} />}
+                <button onClick={()=>setCreneaux(p=>{ const idx=p.findIndex(c=>!c.date); const t=idx>=0?idx:0; return p.map((c,j)=>j===t?{...c,date:iso}:c) })}
+                  style={{width:52,padding:'8px 0',borderRadius:11,border:`2px solid ${choisi?'var(--blue)':libre?'#a7f3d0':occupe?'#fecaca':'var(--border)'}`,background:choisi?'var(--blue-dim)':ferme?'var(--surface2)':libre?'var(--green-dim)':'var(--red-dim)',cursor:'pointer',textAlign:'center'}}>
+                  <div style={{fontSize:10,fontWeight:700,color:'var(--text3)',textTransform:'uppercase'}}>{['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][x.getDay()]}</div>
+                  <div style={{fontSize:17,fontWeight:800,color:choisi?'var(--blue)':'var(--text)'}}>{x.getDate()}</div>
+                  <div style={{fontSize:9,fontWeight:600,color:ferme?'var(--text3)':libre?'var(--green)':'var(--red)'}}>{ferme?'Fermé':libre?'Libre':`${occupe} pris`}</div>
+                </button>
+              </div>
             )
           })}
         </div>
 
         <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:14}}>
           {creneaux.map((c,i)=>(
-            <div key={i} style={{background:'var(--surface2)',borderRadius:13,padding:12,border:'1px solid var(--border)'}}>
+            <div key={i} style={{background:'var(--surface2)',borderRadius:13,padding:12,border:`1px solid ${c.date?'var(--blue-mid)':'var(--border)'}`}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                <p style={{fontSize:11,fontWeight:700,color:'var(--label)',letterSpacing:'0.06em',textTransform:'uppercase'}}>Créneau {i+1}</p>
+                <p style={{fontSize:13,fontWeight:800,letterSpacing:'-0.01em',color:c.date?'var(--blue)':'var(--text3)'}}>{creneauLisible(c.date,c.heure_debut,c.heure_fin)}</p>
                 {creneaux.length>1 && <button onClick={()=>del(i)} className="fab" style={{width:26,height:26,color:'var(--red)'}}><Trash2 size={13}/></button>}
               </div>
               <div style={{display:'flex',gap:6}}>

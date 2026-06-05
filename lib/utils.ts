@@ -23,6 +23,44 @@ export function calculerPrixEstime(typeIntervention: string, envergure: string, 
   return Math.round(type.prix_base * (multiplicateurs[envergure] || 1))
 }
 
+// ── Validation & normalisation des données client ──
+// Normalise un téléphone en E.164 (format requis par Twilio).
+// Gère les saisies locales Antilles/France : 0696… → +596, 0690… → +590, 0X… → +33
+export function normalizePhone(raw: string): string {
+  let s = (raw || '').replace(/[\s.\-()]/g, '')
+  if (!s) return ''
+  if (s.startsWith('+')) return s
+  if (s.startsWith('00')) return '+' + s.slice(2)
+  if (/^0(696|697)/.test(s)) return '+596' + s.slice(1) // mobile Martinique
+  if (/^0(690|691)/.test(s)) return '+590' + s.slice(1) // mobile Guadeloupe
+  if (s.startsWith('0596')) return '+596' + s.slice(1)   // fixe Martinique
+  if (s.startsWith('0590')) return '+590' + s.slice(1)   // fixe Guadeloupe
+  if (s.startsWith('0')) return '+33' + s.slice(1)        // France métropole
+  return s
+}
+
+export function isValidPhone(raw: string): boolean {
+  return /^\+\d{8,15}$/.test(normalizePhone(raw))
+}
+
+// Valide une demande client. Retourne un message d'erreur, ou null si tout est bon.
+export function validerDemande(f: { client_nom?: string; client_telephone?: string; client_adresse?: string }): string | null {
+  if (!f.client_nom || f.client_nom.trim().length < 2) return 'Indiquez votre nom complet.'
+  if (!isValidPhone(f.client_telephone || '')) return 'Numéro de téléphone invalide (ex : 0696 12 34 56).'
+  if (!f.client_adresse || f.client_adresse.trim().length < 4) return "Indiquez l'adresse du chantier."
+  return null
+}
+
+// Transforme un nom d'entreprise en slug d'URL : "Plomberie Dillon" → "plomberie-dillon"
+export function slugify(s: string): string {
+  return (s || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 40) || 'pro'
+}
+
 export function isToday(dateStr: string) {
   const today = new Date()
   const date = new Date(dateStr)

@@ -4,7 +4,8 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
-const ACTIFS = ['trialing', 'active', 'past_due']
+// Accès = essai ou abonnement payé uniquement (impayé → coupure immédiate)
+const ACTIFS = ['trialing', 'active']
 
 // Réconcilie l'abonnement depuis Stripe (appelé au retour du checkout)
 export async function POST(req: NextRequest) {

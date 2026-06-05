@@ -2,9 +2,18 @@ import { supabaseAdmin } from '@/lib/supabase-server'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { Star, ArrowRight, Phone, Clock, ShieldCheck, MessageSquare, CalendarCheck, CheckCircle2, MapPin } from 'lucide-react'
+import { Reveal, AvisCarousel } from './client'
 
 export const runtime = 'nodejs'
 export const revalidate = 120
+
+// Bonne préposition : "en Martinique" (région) vs "à Fort-de-France" (ville)
+function avecZone(zone: string): string {
+  const z = (zone || '').trim()
+  if (/^(la\s|l['’])/i.test(z)) return `dans ${z}`
+  if (/^(martinique|guadeloupe|guyane|r[ée]union|france|antilles)\b/i.test(z)) return `en ${z}`
+  return `à ${z}`
+}
 
 async function getArtisan(slug: string) {
   const cols = 'id, nom, nom_entreprise, logo_url, types_chantier, zone_intervention, telephone, avis_moyenne, avis_count, slug'
@@ -68,9 +77,19 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
 
   return (
     <div style={{ minHeight: '100vh', background: '#06080f', color: C.txt, overflow: 'hidden', position: 'relative', fontFamily: "'SF Pro Display',-apple-system,Inter,sans-serif" }}>
-      {/* Halos d'ambiance */}
-      <div style={{ position: 'absolute', top: -160, left: '50%', transform: 'translateX(-50%)', width: 680, height: 520, background: 'radial-gradient(circle, rgba(45,99,222,0.45) 0%, transparent 65%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', top: 360, right: -140, width: 420, height: 420, background: 'radial-gradient(circle, rgba(120,80,255,0.22) 0%, transparent 65%)', filter: 'blur(50px)', pointerEvents: 'none' }} />
+      {/* Animations (keyframes locales) */}
+      <style>{`
+        @keyframes proUp { from { opacity:0; transform:translateY(24px) } to { opacity:1; transform:none } }
+        @keyframes proFloat { 0%,100% { transform:translate(-50%,0) } 50% { transform:translate(-50%,-22px) } }
+        @keyframes proFloat2 { 0%,100% { transform:translateY(0) } 50% { transform:translateY(26px) } }
+        @keyframes proPulse { 0%,100% { opacity:.85 } 50% { opacity:.4 } }
+        .pu{ animation: proUp .8s cubic-bezier(.22,1,.36,1) both }
+        .pu1{animation-delay:.05s}.pu2{animation-delay:.15s}.pu3{animation-delay:.25s}.pu4{animation-delay:.35s}.pu5{animation-delay:.5s}
+        @media (prefers-reduced-motion: reduce){ .pu,.pu1,.pu2,.pu3,.pu4,.pu5{animation:none!important} }
+      `}</style>
+      {/* Halos d'ambiance (flottants) */}
+      <div style={{ position: 'absolute', top: -160, left: '50%', width: 680, height: 520, background: 'radial-gradient(circle, rgba(45,99,222,0.45) 0%, transparent 65%)', filter: 'blur(40px)', pointerEvents: 'none', animation: 'proFloat 9s ease-in-out infinite' }} />
+      <div style={{ position: 'absolute', top: 360, right: -140, width: 420, height: 420, background: 'radial-gradient(circle, rgba(120,80,255,0.22) 0%, transparent 65%)', filter: 'blur(50px)', pointerEvents: 'none', animation: 'proFloat2 11s ease-in-out infinite' }} />
 
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 940, margin: '0 auto', padding: '0 20px 70px' }}>
 
@@ -87,20 +106,20 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
 
         {/* Hero */}
         <header style={{ textAlign: 'center', padding: '46px 0 30px' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 600, color: C.mut, background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 30, padding: '6px 14px' }}>
+          <span className="pu pu1" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 600, color: C.mut, background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 30, padding: '6px 14px' }}>
             <MapPin size={13} color={C.accent} /> {zone} · Artisan vérifié
           </span>
-          <h1 style={{ fontSize: 'clamp(34px,7vw,58px)', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, margin: '20px auto 0', maxWidth: 760 }}>
+          <h1 className="pu pu2" style={{ fontSize: 'clamp(34px,7vw,58px)', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.04, margin: '20px auto 0', maxWidth: 760 }}>
             {hero.pre}<span style={{ background: 'linear-gradient(120deg,#7aa6ff,#2d63de)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{hero.hi}</span>{hero.post}
           </h1>
-          <p style={{ fontSize: 'clamp(15px,2.4vw,18px)', color: C.mut, maxWidth: 520, margin: '18px auto 0', lineHeight: 1.55 }}>
-            {nom} intervient à {zone}. Décrivez votre besoin en 1 minute — vous recevez un créneau et un devis clair, sans engagement.
+          <p className="pu pu3" style={{ fontSize: 'clamp(15px,2.4vw,18px)', color: C.mut, maxWidth: 520, margin: '18px auto 0', lineHeight: 1.55 }}>
+            {nom} intervient {avecZone(zone)}. Décrivez votre besoin en 1 minute — vous recevez un créneau et un devis clair, sans engagement.
           </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginTop: 30 }}>
+          <div className="pu pu4" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginTop: 30 }}>
             <a href={formUrl} style={{ ...cta(C), textDecoration: 'none' }}>Demander mon devis <ArrowRight size={19} /></a>
             {a.telephone && <a href={`tel:${a.telephone}`} style={{ ...ghost(C), textDecoration: 'none' }}><Phone size={17} /> Appeler</a>}
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 22px', justifyContent: 'center', marginTop: 26 }}>
+          <div className="pu pu5" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 22px', justifyContent: 'center', marginTop: 26 }}>
             <Trust C={C} Icon={Clock} txt="Réponse rapide" />
             <Trust C={C} Icon={ShieldCheck} txt="Devis sans engagement" />
             <Trust C={C} Icon={Star} txt="Artisan local de confiance" />
@@ -108,7 +127,7 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
         </header>
 
         {/* Carte de réassurance flottante */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 56 }}>
+        <div className="pu pu5" style={{ display: 'flex', justifyContent: 'center', marginBottom: 56 }}>
           <div style={{ background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 22, padding: '20px 26px', backdropFilter: 'blur(14px)', display: 'flex', gap: 34, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
             <Stat C={C} big={aReel ? moyenne.toFixed(1) : '98%'} small={aReel ? `${a.avis_count} avis` : 'clients satisfaits'} />
             <div style={{ width: 1, background: C.glassBorder }} />
@@ -120,18 +139,18 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
 
         {/* Services */}
         {services.length > 0 && (
-          <section style={{ marginBottom: 56 }}>
+          <Reveal><section style={{ marginBottom: 56 }}>
             <Eyebrow C={C} txt="Ce qu'on fait pour vous" />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
               {services.map(s => (
                 <span key={s} style={{ background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 14, padding: '13px 20px', fontSize: 15, fontWeight: 600 }}>{s}</span>
               ))}
             </div>
-          </section>
+          </section></Reveal>
         )}
 
         {/* Comment ça marche (le bloc qui fait basculer la décision) */}
-        <section style={{ marginBottom: 56 }}>
+        <Reveal><section style={{ marginBottom: 56 }}>
           <Eyebrow C={C} txt="Comment ça marche" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
             {[
@@ -149,32 +168,20 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
               </div>
             ))}
           </div>
-        </section>
+        </section></Reveal>
 
-        {/* Avis */}
-        <section style={{ marginBottom: 56 }}>
+        {/* Avis qui tournent */}
+        <Reveal><section style={{ marginBottom: 56 }}>
           <Eyebrow C={C} txt="Ils nous ont fait confiance" />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 14 }}>
-            {avis.map((av: any, i: number) => (
-              <div key={i} style={{ background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 18, padding: 20 }}>
-                <div style={{ display: 'flex', gap: 3, marginBottom: 10 }}>
-                  {Array.from({ length: 5 }).map((_, k) => <Star key={k} size={15} color="#f5b740" fill={k < av.note ? '#f5b740' : 'none'} />)}
-                </div>
-                {av.commentaire && <p style={{ fontSize: 14.5, lineHeight: 1.55, color: 'rgba(244,247,255,0.86)' }}>“{av.commentaire}”</p>}
-                <p style={{ fontSize: 12.5, color: C.mut2, marginTop: 12, fontWeight: 600 }}>
-                  {av.client_nom || 'Client vérifié'}{av.lieu ? ` · ${av.lieu}` : ''}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
+          <AvisCarousel avis={avis} />
+        </section></Reveal>
 
         {/* CTA final */}
-        <section style={{ background: 'linear-gradient(135deg,#1d3a8a,#0c1f3f)', border: `1px solid ${C.glassBorder}`, borderRadius: 26, padding: '40px 24px', textAlign: 'center', boxShadow: '0 24px 70px rgba(13,31,63,0.6)' }}>
+        <Reveal><section style={{ background: 'linear-gradient(135deg,#1d3a8a,#0c1f3f)', border: `1px solid ${C.glassBorder}`, borderRadius: 26, padding: '40px 24px', textAlign: 'center', boxShadow: '0 24px 70px rgba(13,31,63,0.6)' }}>
           <h2 style={{ fontSize: 'clamp(24px,4vw,32px)', fontWeight: 800, letterSpacing: '-0.035em', marginBottom: 10 }}>Prêt à régler votre chantier ?</h2>
           <p style={{ fontSize: 15, color: C.mut, maxWidth: 420, margin: '0 auto 24px', lineHeight: 1.5 }}>Ça prend 1 minute. Vous n'avez rien à payer pour demander un devis.</p>
           <a href={formUrl} style={{ ...cta(C), textDecoration: 'none', margin: '0 auto' }}>Demander mon devis gratuit <ArrowRight size={19} /></a>
-        </section>
+        </section></Reveal>
 
         <p style={{ textAlign: 'center', fontSize: 11.5, color: C.mut2, marginTop: 30 }}>Propulsé par TraceOn</p>
       </div>

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Users, TrendingUp, Euro, RefreshCw, ExternalLink, Wallet, Sparkles, Clock, Phone, MessageSquare, Mail, Ban, RotateCcw, Download, Send, Megaphone } from 'lucide-react'
+import { Users, TrendingUp, Euro, RefreshCw, ExternalLink, Wallet, Sparkles, Clock, Phone, MessageSquare, Mail, Ban, RotateCcw, Download, Send, Megaphone, Activity } from 'lucide-react'
 
 const eur = (n: number) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.round(n || 0)) + ' €'
 
@@ -112,6 +112,8 @@ export default function Admin() {
         <Kpi Icon={TrendingUp} label="Demandes" value={`${stats.demandes}`} hint={`${stats.demandes_payees} encaissées`} />
       </div>
 
+      <SystemStatus adminKey={key} />
+
       <Broadcast adminKey={key} />
 
       <p style={{ fontSize: 12, fontWeight: 700, color: C.mut, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Artisans</p>
@@ -178,6 +180,46 @@ function actBtn(color: string): any {
 }
 function ActBtn({ href, Icon, txt }: { href: string; Icon: any; txt: string }) {
   return <a href={href} style={{ ...actBtn(C.accent), textDecoration: 'none' }}><Icon size={13} /> {txt}</a>
+}
+
+// État du système — config & santé en un coup d'œil
+function SystemStatus({ adminKey }: { adminKey: string }) {
+  const [s, setS] = useState<any>(null)
+  useEffect(() => {
+    fetch('/api/admin/status', { method: 'POST', headers: { 'x-admin-key': adminKey } })
+      .then(r => r.ok ? r.json() : null).then(setS).catch(() => {})
+  }, [adminKey])
+
+  const dot = (color: string) => <span style={{ width: 9, height: 9, borderRadius: '50%', background: color, flexShrink: 0, boxShadow: `0 0 8px ${color}` }} />
+  const G = '#4ade80', A = '#fbbf24', R = '#ff6b6b'
+  const rows = s ? [
+    { l: 'Base de données', ok: s.db, val: s.db ? 'En ligne' : 'Hors ligne', c: s.db ? G : R },
+    { l: 'Paiement (Stripe)', ok: s.stripe === 'live', val: s.stripe === 'live' ? 'LIVE' : s.stripe === 'test' ? 'Mode test' : 'Absent', c: s.stripe === 'live' ? G : s.stripe === 'test' ? A : R },
+    { l: 'SMS (Twilio)', ok: s.twilio, val: s.twilio ? 'Actif' : 'Absent', c: s.twilio ? G : R },
+    { l: 'Email de secours', ok: s.email, val: s.email ? 'Actif' : 'Absent', c: s.email ? G : A },
+    { l: 'Notifications push', ok: s.push, val: s.push ? 'Actif' : 'Absent', c: s.push ? G : R },
+    { l: 'Relance auto', ok: s.cron, val: s.cron ? 'Protégée' : 'Absente', c: s.cron ? G : R },
+  ] : []
+
+  return (
+    <div style={{ background: C.glass, border: `1px solid ${C.border}`, borderRadius: 18, padding: 18, marginBottom: 16, backdropFilter: 'blur(10px)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
+        <Activity size={17} color={C.accent} />
+        <span style={{ fontSize: 14, fontWeight: 700 }}>État du système</span>
+      </div>
+      {!s ? <p style={{ fontSize: 12.5, color: C.mut }}>Chargement…</p> : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '10px 18px' }}>
+          {rows.map(r => (
+            <div key={r.l} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              {dot(r.c)}
+              <span style={{ fontSize: 12.5, color: C.mut, flex: 1 }}>{r.l}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: r.c }}>{r.val}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // Mise à jour / annonce globale à tous les artisans

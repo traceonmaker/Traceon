@@ -10,14 +10,23 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
+  const [info, setInfo] = useState('')
 
   async function submit(e: React.FormEvent) {
-    e.preventDefault(); setErr(''); setLoading(true)
+    e.preventDefault(); setErr(''); setInfo(''); setLoading(true)
     const mail = email.trim().toLowerCase()
     const { error } = await supabase.auth.signInWithPassword({ email: mail, password })
     if (error) { setLoading(false); setErr('Email ou mot de passe incorrect.'); return }
     const { data } = await supabase.from('artisans').select('id').ilike('email', mail).maybeSingle()
     router.replace(data?.id ? `/dashboard/${data.id}` : '/onboarding')
+  }
+
+  async function oublie() {
+    setErr(''); setInfo('')
+    const mail = email.trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) { setErr('Entrez d’abord votre email ci-dessus.'); return }
+    await fetch('/api/artisan/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: mail }) }).catch(() => {})
+    setInfo('Si un compte existe, un nouveau mot de passe vient d’être envoyé par SMS.')
   }
 
   return (
@@ -45,7 +54,12 @@ export default function Login() {
           </button>
         </form>
 
+        <button type="button" onClick={oublie} style={{display:'block',margin:'14px auto 0',background:'none',border:'none',color:'var(--text3)',fontSize:12.5,fontWeight:600,cursor:'pointer',textDecoration:'underline'}}>
+          Mot de passe oublié ?
+        </button>
+
         {err && <div style={{marginTop:16,background:'var(--red-dim)',border:'1px solid #fecaca',color:'var(--red)',borderRadius:12,padding:'11px 14px',fontSize:13,fontWeight:600,textAlign:'center'}}>{err}</div>}
+        {info && <div style={{marginTop:16,background:'var(--green-dim)',border:'1px solid #a7f3d0',color:'var(--green)',borderRadius:12,padding:'11px 14px',fontSize:13,fontWeight:600,textAlign:'center'}}>{info}</div>}
 
         <p style={{fontSize:13,color:'var(--text3)',textAlign:'center',marginTop:20}}>
           Pas encore de compte ?{' '}

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { calculerPrixEstime, formatPrix, validerDemande, normalizePhone, isValidPhone } from '@/lib/utils'
 import type { Artisan, TypeChantier } from '@/lib/supabase'
 import { Droplet, Zap, Snowflake, Hammer, Paintbrush, Wrench, Check, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react'
+import { TraceOnMark } from '@/app/components/Logo'
 
 type Form = { type_intervention:string; client_nom:string; client_telephone:string; client_adresse:string; client_description:string; envergure:string }
 const ENVERGURES = [
@@ -185,7 +186,11 @@ export default function Formulaire() {
           </div>
         )}
 
-        <p style={{textAlign:'center',fontSize:11.5,color:C.mut2,marginTop:24}}>🔒 Vos informations restent confidentielles · Propulsé par TraceOn</p>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,marginTop:24,flexWrap:'wrap'}}>
+          <span style={{fontSize:11.5,color:C.mut2}}>🔒 Informations confidentielles ·</span>
+          <TraceOnMark size={15} color="#5b8cff" />
+          <span style={{fontSize:11.5,color:C.mut2}}>Propulsé par TraceOn</span>
+        </div>
       </div>
     </Shell>
   )

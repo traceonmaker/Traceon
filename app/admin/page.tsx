@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Users, TrendingUp, RefreshCw, ExternalLink, Wallet, Sparkles, Phone, MessageSquare, Mail, Ban, RotateCcw, Download, Send, Megaphone } from 'lucide-react'
+import { TraceOnMark } from '@/app/components/Logo'
 
 const eur = (n: number) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.round(n || 0)) + ' €'
 
@@ -87,9 +88,14 @@ export default function Admin() {
   return shell(
     <div className="adm">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
-        <div>
-          <p style={{ fontSize: 12, color: C.accent, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Cockpit</p>
-          <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.03em', marginTop: 2 }}>TraceOn — Admin</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 13, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <TraceOnMark size={26} />
+          </div>
+          <div>
+            <p style={{ fontSize: 12, color: C.accent, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Cockpit</p>
+            <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', marginTop: 2 }}>TraceOn — Admin</h1>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {deferred && (

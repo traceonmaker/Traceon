@@ -2,7 +2,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ShieldCheck, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import { TraceOnMark } from '@/app/components/Logo'
 
 export default function Login() {
   const router = useRouter()
@@ -32,8 +33,8 @@ export default function Login() {
   return (
     <div style={{minHeight:'100vh',background:'var(--bg-grad)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div className="card a-scaleIn" style={{maxWidth:400,width:'100%',padding:'30px 26px'}}>
-        <div style={{width:54,height:54,borderRadius:16,background:'linear-gradient(135deg,#2a63de,#1550cf)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',boxShadow:'var(--shadow-blue)'}}>
-          <ShieldCheck size={26} color="#fff" />
+        <div style={{width:60,height:60,borderRadius:18,background:'#fff',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',boxShadow:'var(--shadow)',border:'1px solid var(--border)'}}>
+          <TraceOnMark size={34} />
         </div>
         <h1 style={{fontSize:23,fontWeight:800,letterSpacing:'-0.03em',textAlign:'center',marginBottom:6}}>Connexion TraceOn</h1>
         <p style={{fontSize:14,color:'var(--text2)',textAlign:'center',lineHeight:1.5,marginBottom:24}}>

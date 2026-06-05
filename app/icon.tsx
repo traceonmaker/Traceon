@@ -13,8 +13,8 @@ export default function Icon() {
         background: 'linear-gradient(160deg, #ffffff 0%, #eef2f9 100%)',
       }}>
         <svg width="512" height="512" viewBox="0 0 512 512">
-          <rect x="146" y="150" width="220" height="46" rx="23" fill="#1d5fed" />
-          <path d="M256 170 L268 338 Q272 369 303 356" fill="none" stroke="#1d5fed" strokeWidth="46" strokeLinecap="round" strokeLinejoin="round" />
+          <rect x="113" y="108" width="286" height="57" rx="28.5" fill="#1d5fed" />
+          <path d="M256 120 L271 374 Q282 430 348 405" fill="none" stroke="#1d5fed" strokeWidth="57" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </div>
     ),

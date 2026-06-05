@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { Star, ArrowRight, Phone, Clock, ShieldCheck, MessageSquare, CalendarCheck, CheckCircle2, MapPin } from 'lucide-react'
 import { Reveal } from './client'
+import { TraceOnMark } from '@/app/components/Logo'
 
 export const runtime = 'nodejs'
 export const revalidate = 120
@@ -245,7 +246,10 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
           <a href={formUrl} className="pro-lift" style={{ ...cta(C), textDecoration: 'none', margin: '0 auto' }}>Demander mon devis gratuit <ArrowRight size={19} /></a>
         </section></Reveal>
 
-        <p style={{ textAlign: 'center', fontSize: 11.5, color: C.mut2, marginTop: 30 }}>Propulsé par TraceOn</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 30 }}>
+          <TraceOnMark size={16} color="#5b8cff" />
+          <span style={{ fontSize: 11.5, color: C.mut2 }}>Propulsé par TraceOn</span>
+        </div>
       </div>
     </div>
   )

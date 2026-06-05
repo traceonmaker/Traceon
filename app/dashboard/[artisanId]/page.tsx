@@ -17,6 +17,7 @@ import {
 import InstallPrompt from '@/app/components/InstallPrompt'
 import PushSetup from '@/app/components/PushSetup'
 import PushBanner from '@/app/components/PushBanner'
+import { TraceOnMark } from '@/app/components/Logo'
 
 type Tab = 'accueil'|'planning'|'bilan'|'parametres'
 const TABS: Tab[] = ['accueil','planning','bilan','parametres']
@@ -306,6 +307,7 @@ export default function Dashboard() {
 
   if (!artisan) return (
     <div style={{minHeight:'100vh',background:'var(--bg-grad)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,textAlign:'center'}}>
+      <div style={{width:64,height:64,borderRadius:18,background:'#fff',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:18,boxShadow:'var(--shadow)',border:'1px solid var(--border)'}}><TraceOnMark size={36} /></div>
       <p style={{fontSize:18,fontWeight:700,marginBottom:6}}>Bienvenue sur TraceOn</p>
       <p style={{fontSize:14,color:'var(--text2)',marginBottom:24}}>Créez votre compte artisan</p>
       <a href="/onboarding" className="btn-primary" style={{width:'auto',padding:'12px 24px',textDecoration:'none'}}>Créer mon compte</a>

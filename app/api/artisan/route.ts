@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { slugify } from '@/lib/utils'
+import { sendEmail, emailLayout } from '@/lib/email'
 import twilio from 'twilio'
 
 export const runtime = 'nodejs'
@@ -94,6 +95,11 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     console.error('SMS mot de passe:', (e as any)?.message)
   }
+
+  // Fallback email (au cas où le SMS n'arrive pas) — best-effort
+  const url = process.env.NEXT_PUBLIC_APP_URL || ''
+  sendEmail(email, 'Votre espace TraceOn est prêt', emailLayout('Bienvenue sur TraceOn',
+    `Votre espace est prêt.<br><br><b>Identifiant :</b> ${email}<br><b>Mot de passe :</b> ${password}<br><br><a href="${url}/login" style="color:#1d5fed">Se connecter</a><br><br>Vous pourrez modifier votre mot de passe dans Réglages.`)).catch(() => {})
 
   // password renvoyé une seule fois pour connexion automatique immédiate
   return NextResponse.json({ ...data, password }, { status: 201 })

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
+import { sendEmail, emailLayout } from '@/lib/email'
 import twilio from 'twilio'
 
 export const runtime = 'nodejs'
@@ -40,6 +41,11 @@ export async function POST(req: NextRequest) {
       })
     }
   } catch (e) { console.error('SMS reset:', (e as any)?.message) }
+
+  // Fallback email
+  const base = process.env.NEXT_PUBLIC_APP_URL || ''
+  sendEmail(mail, 'Votre nouveau mot de passe TraceOn', emailLayout('Nouveau mot de passe',
+    `Votre nouveau mot de passe : <b>${password}</b><br><br><a href="${base}/login" style="color:#1d5fed">Se connecter</a><br><br>Modifiable dans Réglages.`)).catch(() => {})
 
   return NextResponse.json({ ok: true })
 }

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import InstallPrompt from '@/app/components/InstallPrompt'
 import PushSetup from '@/app/components/PushSetup'
+import PushBanner from '@/app/components/PushBanner'
 
 type Tab = 'accueil'|'planning'|'bilan'|'parametres'
 const TABS: Tab[] = ['accueil','planning','bilan','parametres']
@@ -340,6 +341,8 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+
+        {!isDemo && tab==='accueil' && <PushBanner artisanId={artisan.id} />}
 
         <div key={tab} className={`tab-pane ${dir>0?'fwd':'back'}`}>
           {tab==='accueil'     && <Accueil nouvelles={nouvelles} encaisse={encaisseAffiche} potentiel={potentiel} confirmes={confirmes} valider={valider} validating={validating} removing={removing} onCreneaux={setModal} onShare={copyLink} onSupprimer={supprimer} objectif={artisan.objectif_mensuel ?? 5000} />}

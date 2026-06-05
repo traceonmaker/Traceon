@@ -24,10 +24,21 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { artisan_id, client_nom, client_adresse, client_description, type_intervention, envergure } = body
 
+  // Anti-bot : le honeypot doit rester vide (les robots le remplissent)
+  if (body.hp) return NextResponse.json({ token: 'ok' }, { status: 201 })
+
   // Validation serveur (défense en profondeur) + normalisation du téléphone
   const erreur = validerDemande(body)
   if (erreur) return NextResponse.json({ error: erreur }, { status: 400 })
   const client_telephone = normalizePhone(body.client_telephone)
+
+  // Anti-doublon / anti-flood : même artisan + même numéro dans les 60 dernières secondes → on ignore
+  const ilya60s = new Date(Date.now() - 60_000).toISOString()
+  const { data: recent } = await supabaseAdmin
+    .from('demandes').select('id, token')
+    .eq('artisan_id', artisan_id).eq('client_telephone', client_telephone)
+    .gte('created_at', ilya60s).limit(1).maybeSingle()
+  if (recent) return NextResponse.json({ token: recent.token }, { status: 200 })
 
   const { data: artisan } = await supabaseAdmin
     .from('artisans').select('types_chantier, nom_entreprise, nom').eq('id', artisan_id).single()

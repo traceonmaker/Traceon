@@ -28,6 +28,7 @@ export default function Formulaire() {
   const [done, setDone] = useState(false)
   const [token, setToken] = useState('')
   const [err, setErr] = useState('')
+  const [hp, setHp] = useState('') // honeypot anti-bot (invisible aux humains)
   const [form, setForm] = useState<Form>({ type_intervention:'', client_nom:'', client_telephone:'', client_adresse:'', client_description:'', envergure:'' })
 
   // Validation de l'étape coordonnées avant de continuer
@@ -51,7 +52,7 @@ export default function Formulaire() {
     setSubmitting(true)
     // Normalise le téléphone en E.164 avant l'envoi (fiable pour les SMS)
     const payload = { ...form, client_telephone: normalizePhone(form.client_telephone) }
-    const r = await fetch('/api/demandes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ artisan_id:artisanId, ...payload }) })
+    const r = await fetch('/api/demandes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ artisan_id:artisanId, hp, ...payload }) })
     const d = await r.json()
     if (r.ok) { setToken(d.token); setDone(true) }
     else setErr(d.error || "Envoi impossible, vérifiez vos informations.")
@@ -112,6 +113,9 @@ export default function Formulaire() {
                 <label style={{fontSize:12,fontWeight:600,color:'var(--text2)',display:'block',marginBottom:6}}>Description <span style={{color:'var(--text3)',fontWeight:400}}>(optionnel)</span></label>
                 <textarea rows={3} value={form.client_description} onChange={e=>setForm(f=>({...f,client_description:e.target.value}))} placeholder="Décrivez votre problème..." className="input-field" style={{resize:'none',lineHeight:1.5}} />
               </div>
+              {/* Honeypot anti-bot — invisible pour un humain, rempli par les robots */}
+              <input type="text" tabIndex={-1} autoComplete="off" value={hp} onChange={e=>setHp(e.target.value)}
+                aria-hidden="true" style={{position:'absolute',left:'-9999px',width:1,height:1,opacity:0}} />
             </div>
             {err && <p style={{fontSize:12.5,color:'var(--red)',fontWeight:600,marginTop:12,display:'flex',alignItems:'center',gap:6}}>⚠ {err}</p>}
             <Actions onBack={()=>setStep(1)} onNext={next2} disabled={!form.client_nom||!form.client_telephone||!form.client_adresse} />

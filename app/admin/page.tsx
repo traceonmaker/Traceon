@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Users, TrendingUp, Euro, RefreshCw, ExternalLink, Wallet, Sparkles, Clock, Phone, MessageSquare, Mail, Ban, RotateCcw, Download, Send, Megaphone, Activity } from 'lucide-react'
+import { Users, TrendingUp, RefreshCw, ExternalLink, Wallet, Sparkles, Phone, MessageSquare, Mail, Ban, RotateCcw, Download, Send, Megaphone } from 'lucide-react'
 
 const eur = (n: number) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.round(n || 0)) + ' €'
 
@@ -105,10 +105,9 @@ export default function Admin() {
       </div>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 26 }}>
-        <Kpi Icon={Users} label="Artisans" value={`${stats.artisans}`} hint="inscrits" />
-        <Kpi Icon={Sparkles} label="Abonnés actifs" value={`${stats.actifs}`} hint="payants" />
-        <Kpi Icon={Clock} label="En essai" value={`${stats.essais}`} hint="à convertir" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 22 }}>
+        <Kpi Icon={Users} label="Artisans" value={`${stats.artisans}`} hint={`${stats.actifs} actifs`} />
+        <Kpi Icon={Sparkles} label="Payants" value={`${stats.payants}`} hint={`${stats.essais} en essai`} />
         <Kpi Icon={TrendingUp} label="Demandes" value={`${stats.demandes}`} hint={`${stats.demandes_payees} encaissées`} />
       </div>
 
@@ -182,9 +181,10 @@ function ActBtn({ href, Icon, txt }: { href: string; Icon: any; txt: string }) {
   return <a href={href} style={{ ...actBtn(C.accent), textDecoration: 'none' }}><Icon size={13} /> {txt}</a>
 }
 
-// État du système — config & santé en un coup d'œil
+// État du système — résumé d'UNE ligne, détails au clic
 function SystemStatus({ adminKey }: { adminKey: string }) {
   const [s, setS] = useState<any>(null)
+  const [open, setOpen] = useState(false)
   useEffect(() => {
     fetch('/api/admin/status', { method: 'POST', headers: { 'x-admin-key': adminKey } })
       .then(r => r.ok ? r.json() : null).then(setS).catch(() => {})
@@ -193,26 +193,30 @@ function SystemStatus({ adminKey }: { adminKey: string }) {
   const dot = (color: string) => <span style={{ width: 9, height: 9, borderRadius: '50%', background: color, flexShrink: 0, boxShadow: `0 0 8px ${color}` }} />
   const G = '#4ade80', A = '#fbbf24', R = '#ff6b6b'
   const rows = s ? [
-    { l: 'Base de données', ok: s.db, val: s.db ? 'En ligne' : 'Hors ligne', c: s.db ? G : R },
-    { l: 'Paiement (Stripe)', ok: s.stripe === 'live', val: s.stripe === 'live' ? 'LIVE' : s.stripe === 'test' ? 'Mode test' : 'Absent', c: s.stripe === 'live' ? G : s.stripe === 'test' ? A : R },
-    { l: 'SMS (Twilio)', ok: s.twilio, val: s.twilio ? 'Actif' : 'Absent', c: s.twilio ? G : R },
-    { l: 'Email de secours', ok: s.email, val: s.email ? 'Actif' : 'Absent', c: s.email ? G : A },
-    { l: 'Notifications push', ok: s.push, val: s.push ? 'Actif' : 'Absent', c: s.push ? G : R },
-    { l: 'Relance auto', ok: s.cron, val: s.cron ? 'Protégée' : 'Absente', c: s.cron ? G : R },
+    { l: 'Base de données', val: s.db ? 'En ligne' : 'Hors ligne', c: s.db ? G : R },
+    { l: 'Paiement (Stripe)', val: s.stripe === 'live' ? 'LIVE' : s.stripe === 'test' ? 'Mode test' : 'Absent', c: s.stripe === 'live' ? G : s.stripe === 'test' ? A : R },
+    { l: 'SMS (Twilio)', val: s.twilio ? 'Actif' : 'Absent', c: s.twilio ? G : R },
+    { l: 'Email de secours', val: s.email ? 'Actif' : 'Absent', c: s.email ? G : A },
+    { l: 'Notifications', val: s.push ? 'Actif' : 'Absent', c: s.push ? G : R },
+    { l: 'Relance auto', val: s.cron ? 'Active' : 'Absente', c: s.cron ? G : R },
   ] : []
+  const probleme = rows.find(r => r.c !== G)
+  const tout = s && !probleme
+  const resume = !s ? '…' : tout ? 'Tout fonctionne' : `À régler : ${probleme!.l}`
+  const couleur = !s ? C.mut2 : tout ? G : A
 
   return (
-    <div style={{ background: C.glass, border: `1px solid ${C.border}`, borderRadius: 18, padding: 18, marginBottom: 16, backdropFilter: 'blur(10px)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
-        <Activity size={17} color={C.accent} />
-        <span style={{ fontSize: 14, fontWeight: 700 }}>État du système</span>
-      </div>
-      {!s ? <p style={{ fontSize: 12.5, color: C.mut }}>Chargement…</p> : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '10px 18px' }}>
+    <div style={{ background: C.glass, border: `1px solid ${C.border}`, borderRadius: 16, padding: '14px 16px', marginBottom: 16, backdropFilter: 'blur(10px)' }}>
+      <button onClick={() => setOpen(o => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 11, background: 'none', border: 'none', color: C.txt, cursor: 'pointer', padding: 0 }}>
+        {dot(couleur)}
+        <span style={{ fontSize: 14, fontWeight: 700, flex: 1, textAlign: 'left' }}>{resume}</span>
+        <span style={{ fontSize: 12, color: C.mut2 }}>{open ? 'masquer' : 'détails'}</span>
+      </button>
+      {open && s && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '9px 18px', marginTop: 14 }}>
           {rows.map(r => (
             <div key={r.l} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-              {dot(r.c)}
-              <span style={{ fontSize: 12.5, color: C.mut, flex: 1 }}>{r.l}</span>
+              {dot(r.c)}<span style={{ fontSize: 12.5, color: C.mut, flex: 1 }}>{r.l}</span>
               <span style={{ fontSize: 12, fontWeight: 700, color: r.c }}>{r.val}</span>
             </div>
           ))}

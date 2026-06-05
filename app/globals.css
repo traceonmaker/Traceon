@@ -527,31 +527,32 @@ html.theme-switching * { transition: none !important; }
   position: fixed; inset: 0; z-index: 100; overflow: hidden;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   background: linear-gradient(160deg, #2a63de 0%, #1d5fed 46%, #0c2f7a 100%);
-  animation: introPlunge .7s cubic-bezier(.4,0,.2,1) 3.2s forwards;
+  animation: introPlunge .6s cubic-bezier(.4,0,.2,1) 2.45s forwards;
 }
 /* Rayon de soleil qui balaie la surface brillante */
 .intro-overlay::after {
   content:''; position:absolute; inset:-20%; pointer-events:none;
-  background: linear-gradient(115deg, transparent 36%, rgba(255,222,150,0.20) 47%, rgba(255,255,255,0.14) 51%, rgba(255,222,150,0.18) 55%, transparent 66%);
+  background: linear-gradient(115deg, transparent 36%, rgba(255,222,150,0.18) 47%, rgba(255,255,255,0.12) 51%, rgba(255,222,150,0.16) 55%, transparent 66%);
   transform: translateX(-70%);
-  animation: introBeam 2.8s cubic-bezier(.4,0,.2,1) .55s both;
+  animation: introBeam 2.4s cubic-bezier(.4,0,.2,1) .7s both;
 }
 @keyframes introBeam  { 0% { transform: translateX(-70%) } 100% { transform: translateX(70%) } }
 @keyframes introSheen { 0% { background-position: 150% 0 } 100% { background-position: -50% 0 } }
+@keyframes introHelloIn { 0% { opacity:0; transform: translateY(10px) } 100% { opacity:1; transform: none } }
 .intro-mark {
   width: 100px; height: 100px; border-radius: 30px;
   background: rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center;
   animation: introMarkIn .65s cubic-bezier(.22,1,.36,1) both, introGlow 1.5s ease-out .45s;
 }
 /* « Bonjour » façon Apple : grand, fin, élégant */
+/* « Bonjour + entreprise » sur une ligne, apparition lente façon Apple + reflet doré */
 .intro-hello {
-  font-size:54px; font-weight:300; letter-spacing:-0.02em; position:relative;
+  font-size:clamp(30px,6.5vw,54px); font-weight:300; letter-spacing:-0.02em; position:relative;
+  text-align:center; max-width:92vw; padding:0 20px; line-height:1.12;
   background:linear-gradient(100deg,#fff 0%,#fff 40%,#ffe6a3 47%,#ffcf5e 50%,#ffe6a3 53%,#fff 60%,#fff 100%);
   background-size:280% 100%; -webkit-background-clip:text; background-clip:text; color:transparent;
-  animation: introMarkIn .8s cubic-bezier(.22,1,.36,1) both, introSheen 2.6s ease-in-out .5s both;
+  animation: introHelloIn 1.9s cubic-bezier(.22,1,.36,1) both, introSheen 2.4s ease-in-out .8s both;
 }
-.intro-word { color:#fff; font-size:27px; font-weight:800; letter-spacing:-0.01em; margin-top:14px; animation: introText .6s ease .7s both; }
-.intro-tag  { color:rgba(255,255,255,0.8); font-size:14px; margin-top:8px; animation: introText .6s ease 1s both; }
 
 /* ───────── Accessibilité : respect de "réduire les animations" ───────── */
 @media (prefers-reduced-motion: reduce) {

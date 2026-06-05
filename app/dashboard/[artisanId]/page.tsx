@@ -1027,6 +1027,9 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
     preferences_creneaux: artisan.preferences_creneaux || { grand:'matin', moyen:'flexible', petit:'apres-midi' },
     objectif_mensuel: artisan.objectif_mensuel ?? 5000,
     message_relance: artisan.message_relance || '',
+    message_confirmation: artisan.message_confirmation || '',
+    message_creneaux: artisan.message_creneaux || '',
+    message_avis: artisan.message_avis || '',
     google_avis_url: artisan.google_avis_url || '',
   })
   const set = (k:keyof Artisan, v:any) => setF(p=>({...p,[k]:v}))
@@ -1197,16 +1200,24 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
         </div>
       </Section>
 
-      {/* Message de relance personnalisable */}
-      <Section title="Message de relance" onSave={()=>save(f)}>
-        <p style={{fontSize:13,color:'var(--text2)',marginBottom:10,lineHeight:1.5}}>
-          Le SMS envoyé automatiquement au client qui n'a pas répondu après l'envoi de vos créneaux.
-          Écrivez <b>{'{client}'}</b>, <b>{'{entreprise}'}</b> et <b>{'{lien}'}</b> — ils seront remplacés automatiquement.
+      {/* Messages SMS envoyés aux clients — tous personnalisables */}
+      <Section title="Messages aux clients" onSave={()=>save(f)}>
+        <p style={{fontSize:13,color:'var(--text2)',marginBottom:16,lineHeight:1.5}}>
+          Les SMS envoyés automatiquement à vos clients, <b>en votre nom</b>. Personnalisez-les si vous voulez.
+          Les variables entre accolades sont remplacées automatiquement. Laissez vide = message par défaut.
         </p>
-        <textarea value={f.message_relance as string} onChange={e=>set('message_relance', e.target.value)} rows={4}
-          placeholder={"Bonjour {client}, avez-vous choisi un créneau pour votre intervention avec {entreprise} ? Réservez ici : {lien}"}
-          className="input-field" style={{resize:'none',lineHeight:1.5}} />
-        <p style={{fontSize:11,color:'var(--text3)',marginTop:8}}>Laissez vide pour utiliser le message par défaut.</p>
+        <MsgTpl titre="1. Confirmation de demande" desc="Dès qu'un client envoie une demande." vars={['client','entreprise','type','lien']}
+          val={f.message_confirmation as string} set={(v:string)=>set('message_confirmation',v)}
+          placeholder="Bonjour {client}, votre demande ({type}) a bien été reçue par {entreprise}. Suivez votre intervention ici : {lien}" />
+        <MsgTpl titre="2. Proposition de créneaux" desc="Quand vous proposez des créneaux." vars={['client','entreprise','creneaux','lien']}
+          val={f.message_creneaux as string} set={(v:string)=>set('message_creneaux',v)}
+          placeholder="{entreprise} vous propose ces créneaux : {creneaux}. Choisissez le vôtre ici : {lien}" />
+        <MsgTpl titre="3. Relance automatique" desc="Au client sans réponse après 2h." vars={['client','entreprise','lien']}
+          val={f.message_relance as string} set={(v:string)=>set('message_relance',v)}
+          placeholder="Bonjour {client}, avez-vous choisi un créneau pour votre intervention avec {entreprise} ? Réservez ici : {lien}" />
+        <MsgTpl titre="4. Demande d'avis" desc="Après un chantier validé." vars={['client','entreprise','lien']}
+          val={f.message_avis as string} set={(v:string)=>set('message_avis',v)}
+          placeholder="Merci d'avoir fait appel à {entreprise} ! Votre avis compte : notez votre intervention en 10s ici {lien}" last />
       </Section>
 
       {/* Capture d'appel raté */}
@@ -1362,6 +1373,21 @@ function Lab({ label, val, set, type='text' }: { label:string; val:any; set:(v:s
     <div style={{flex:1}}>
       <label style={{fontSize:10,color:'var(--label)',fontWeight:700,letterSpacing:'0.03em',display:'block',marginBottom:4}}>{label}</label>
       <input type={type} value={val} onChange={e=>set(e.target.value)} className="input-field" style={{padding:'9px 12px',fontSize:13}} />
+    </div>
+  )
+}
+// Champ d'édition d'un modèle de SMS client, avec ses variables disponibles
+function MsgTpl({ titre, desc, vars, val, set, placeholder, last }: { titre:string; desc:string; vars:string[]; val:string; set:(v:string)=>void; placeholder:string; last?:boolean }) {
+  return (
+    <div style={{paddingBottom:14,marginBottom:14,borderBottom:last?'none':'1px solid var(--border)'}}>
+      <p style={{fontSize:13.5,fontWeight:700,marginBottom:2}}>{titre}</p>
+      <p style={{fontSize:12,color:'var(--text3)',marginBottom:8}}>{desc}</p>
+      <textarea value={val} onChange={e=>set(e.target.value)} rows={3} placeholder={placeholder} className="input-field" style={{resize:'none',lineHeight:1.5,fontSize:13}} />
+      <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:8}}>
+        {vars.map(v=>(
+          <span key={v} style={{fontSize:11,fontWeight:600,color:'var(--blue)',background:'var(--blue-dim)',border:'1px solid var(--blue-mid)',borderRadius:7,padding:'2px 8px'}}>{`{${v}}`}</span>
+        ))}
+      </div>
     </div>
   )
 }

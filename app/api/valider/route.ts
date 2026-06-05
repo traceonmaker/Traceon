@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { ownsDemande } from '@/lib/auth'
+import { applyTemplate } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
   const { demande_id } = await req.json()
@@ -17,14 +18,17 @@ export async function POST(req: NextRequest) {
   try {
     if (data?.client_telephone && data?.token) {
       const { data: art } = await supabaseAdmin
-        .from('artisans').select('nom_entreprise, nom').eq('id', data.artisan_id).single()
+        .from('artisans').select('nom_entreprise, nom, message_avis').eq('id', data.artisan_id).single()
       const ent = art?.nom_entreprise || art?.nom || 'votre artisan'
       const url = process.env.NEXT_PUBLIC_APP_URL || ''
+      const lien = `${url}/avis/${data.token}`
+      const tpl = (art?.message_avis || '').trim()
+        || "Merci d'avoir fait appel à {entreprise} ! Votre avis compte : notez votre intervention en 10s ici {lien}"
       await fetch(`${url}/api/sms`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: data.client_telephone,
-          message: `Merci d'avoir fait appel à ${ent} ! Votre avis compte : notez votre intervention en 10s ici ${url}/avis/${data.token}`,
+          message: applyTemplate(tpl, { client: data.client_nom, entreprise: ent, lien }),
         }),
       }).catch(() => {})
     }

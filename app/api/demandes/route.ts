@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { calculerPrixEstime, validerDemande, normalizePhone } from '@/lib/utils'
+import { calculerPrixEstime, validerDemande, normalizePhone, applyTemplate } from '@/lib/utils'
 import { ownsArtisan } from '@/lib/auth'
 import { sendPush } from '@/lib/push'
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   if (recent) return NextResponse.json({ token: recent.token }, { status: 200 })
 
   const { data: artisan } = await supabaseAdmin
-    .from('artisans').select('types_chantier, nom_entreprise, nom').eq('id', artisan_id).single()
+    .from('artisans').select('types_chantier, nom_entreprise, nom, message_confirmation').eq('id', artisan_id).single()
 
   const prix_estime = artisan
     ? calculerPrixEstime(type_intervention, envergure, artisan.types_chantier)
@@ -74,12 +74,16 @@ export async function POST(req: NextRequest) {
     }
   } catch {}
 
+  const ent = artisan?.nom_entreprise || artisan?.nom || 'votre artisan'
+  const lien = `${process.env.NEXT_PUBLIC_APP_URL}/suivi/${data.token}`
+  const tpl = (artisan?.message_confirmation || '').trim()
+    || 'Bonjour {client}, votre demande ({type}) a bien été reçue par {entreprise}. Suivez votre intervention ici : {lien}'
   await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/sms`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       to: client_telephone,
-      message: `Bonjour ${client_nom}, votre demande (${type_intervention}) a bien été reçue par ${artisan?.nom_entreprise || artisan?.nom}. Suivez votre intervention ici : ${process.env.NEXT_PUBLIC_APP_URL}/suivi/${data.token}`
+      message: applyTemplate(tpl, { client: client_nom, type: type_intervention, entreprise: ent, lien })
     })
   }).catch(() => {})
 

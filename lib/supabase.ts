@@ -35,6 +35,9 @@ export type Artisan = {
   objectif_mensuel?: number
   push_subscriptions?: any[]
   message_relance?: string | null
+  message_confirmation?: string | null
+  message_creneaux?: string | null
+  message_avis?: string | null
   // Site vitrine + avis
   slug?: string | null
   google_avis_url?: string | null

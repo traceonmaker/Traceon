@@ -51,6 +51,14 @@ export function validerDemande(f: { client_nom?: string; client_telephone?: stri
   return null
 }
 
+// Applique un modèle de message en remplaçant {variables} : {client}, {entreprise}, {lien}…
+export function applyTemplate(tpl: string, vars: Record<string, string>): string {
+  return Object.entries(vars).reduce(
+    (s, [k, v]) => s.replace(new RegExp(`\\{${k}\\}`, 'g'), v ?? ''),
+    tpl || ''
+  )
+}
+
 // Transforme un nom d'entreprise en slug d'URL : "Plomberie Dillon" → "plomberie-dillon"
 export function slugify(s: string): string {
   return (s || '')

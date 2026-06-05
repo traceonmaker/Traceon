@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { ownsDemande } from '@/lib/auth'
+import { applyTemplate } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
   const { demande_id, creneaux } = await req.json()
   if (!(await ownsDemande(req, demande_id))) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const { data: demande } = await supabaseAdmin
-    .from('demandes').select('client_nom, client_telephone, token, artisans(nom_entreprise, nom)')
+    .from('demandes').select('client_nom, client_telephone, token, artisans(nom_entreprise, nom, message_creneaux)')
     .eq('id', demande_id).single() as any
 
   if (!demande) return NextResponse.json({ error: 'Demande introuvable' }, { status: 404 })
@@ -21,15 +22,18 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const entreprise = demande.artisans?.nom_entreprise || demande.artisans?.nom
+  const entreprise = demande.artisans?.nom_entreprise || demande.artisans?.nom || 'votre artisan'
   const creneauxText = creneaux.map((c: any) => `${c.date} à ${c.heure_debut}`).join(' / ')
+  const lien = `${process.env.NEXT_PUBLIC_APP_URL}/suivi/${demande.token}`
+  const tpl = (demande.artisans?.message_creneaux || '').trim()
+    || '{entreprise} vous propose ces créneaux : {creneaux}. Choisissez le vôtre ici : {lien}'
 
   await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/sms`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       to: demande.client_telephone,
-      message: `${entreprise} vous propose ces créneaux : ${creneauxText}. Choisissez le vôtre ici : ${process.env.NEXT_PUBLIC_APP_URL}/suivi/${demande.token}`
+      message: applyTemplate(tpl, { client: demande.client_nom, entreprise, creneaux: creneauxText, lien })
     })
   }).catch(() => {})
 

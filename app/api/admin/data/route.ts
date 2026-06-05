@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     .order('created_at', { ascending: false })
 
   const { data: demandes } = await supabaseAdmin
-    .from('demandes').select('artisan_id, statut, prix_estime')
+    .from('demandes').select('artisan_id, statut, prix_estime, created_at, date_paiement')
 
   // Agrégats par artisan
   const parArtisan: Record<string, { total: number; payes: number; ca: number }> = {}
@@ -27,6 +27,23 @@ export async function POST(req: NextRequest) {
     a.total++
     if (d.statut === 'paye') { a.payes++; a.ca += d.prix_estime || 0 }
   }
+
+  // Séries temporelles pour les mini-graphiques
+  const now = new Date()
+  const caParMois = Array.from({ length: 6 }, (_, i) => {
+    const m = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1)
+    const ca = (demandes || []).filter(d => {
+      if (d.statut !== 'paye') return false
+      const dt = new Date(d.date_paiement || d.created_at)
+      return dt.getFullYear() === m.getFullYear() && dt.getMonth() === m.getMonth()
+    }).reduce((s, d) => s + (d.prix_estime || 0), 0)
+    return { label: m.toLocaleDateString('fr-FR', { month: 'short' }), ca }
+  })
+  const demandesParJour = Array.from({ length: 14 }, (_, i) => {
+    const day = new Date(now); day.setHours(0, 0, 0, 0); day.setDate(day.getDate() - 13 + i)
+    const n = (demandes || []).filter(d => new Date(d.created_at).toDateString() === day.toDateString()).length
+    return n
+  })
 
   const liste = (artisans || []).map(a => ({
     ...a,
@@ -48,5 +65,5 @@ export async function POST(req: NextRequest) {
     demandes_payees: (demandes || []).filter(d => d.statut === 'paye').length,
   }
 
-  return NextResponse.json({ stats, artisans: liste })
+  return NextResponse.json({ stats, artisans: liste, caParMois, demandesParJour })
 }

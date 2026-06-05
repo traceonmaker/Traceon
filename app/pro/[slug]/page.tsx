@@ -155,7 +155,7 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
         </nav>
 
         {/* Hero */}
-        <header className="pro-hero" style={{ textAlign: 'center', padding: '46px 0 30px' }}>
+        <header className="pro-hero" style={{ textAlign: 'center', padding: '64px 0 38px' }}>
           <span className="pu pu1" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 600, color: C.mut, background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 30, padding: '6px 14px' }}>
             <MapPin size={13} color={C.accent} /> {zone} · Artisan vérifié
           </span>
@@ -177,7 +177,7 @@ export default async function MiniSite({ params }: { params: Promise<{ slug: str
         </header>
 
         {/* Carte de réassurance flottante */}
-        <div className="pu pu5" style={{ display: 'flex', justifyContent: 'center', marginBottom: 56 }}>
+        <div className="pu pu5" style={{ display: 'flex', justifyContent: 'center', marginTop: 14, marginBottom: 80 }}>
           <div className="pro-stats pro-card" style={{ background: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 22, padding: '20px 26px', backdropFilter: 'blur(14px)', display: 'flex', gap: 34, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
             <Stat C={C} big={aReel ? moyenne.toFixed(1) : '98%'} small={aReel ? `${a.avis_count} avis` : 'clients satisfaits'} />
             <div style={{ width: 1, background: C.glassBorder }} />

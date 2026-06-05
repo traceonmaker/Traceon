@@ -48,9 +48,23 @@ export default function Admin() {
   async function installer() { if (deferred) { deferred.prompt(); await deferred.userChoice; setDeferred(null) } }
 
   const shell = (children: any) => (
-    <div style={{ minHeight: '100vh', background: C.bg, color: C.txt, position: 'relative', overflow: 'hidden', fontFamily: "'SF Pro Display',-apple-system,Inter,sans-serif" }}>
-      <div style={{ position: 'absolute', top: -180, left: '52%', transform: 'translateX(-50%)', width: 720, height: 520, background: 'radial-gradient(circle, rgba(45,99,222,0.42) 0%, transparent 65%)', filter: 'blur(46px)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', top: 320, right: -140, width: 420, height: 420, background: 'radial-gradient(circle, rgba(120,80,255,0.20) 0%, transparent 65%)', filter: 'blur(54px)', pointerEvents: 'none' }} />
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#0a1426 0%,#070b16 55%,#06080f 100%)', color: C.txt, position: 'relative', overflow: 'hidden', fontFamily: "'SF Pro Display',-apple-system,Inter,sans-serif" }}>
+      <style>{`
+        .adm{ max-width:880px; margin:0 auto; padding:26px 18px 70px; }
+        .adm-stats{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:18px; }
+        .adm-mrr-num{ font-size:48px; }
+        .adm-hero{ display:flex; align-items:flex-end; justify-content:space-between; gap:20px; }
+        .adm-chart{ display:flex; }
+        @media (max-width:640px){
+          .adm{ padding:20px 14px 60px; }
+          .adm-stats{ grid-template-columns:1fr; gap:10px; }
+          .adm-mrr-num{ font-size:38px; }
+          .adm-hero{ flex-direction:column; align-items:stretch; gap:16px; }
+          .adm-chart{ justify-content:space-between; }
+        }
+      `}</style>
+      <div style={{ position: 'absolute', top: -180, left: '52%', transform: 'translateX(-50%)', width: 720, height: 520, background: 'radial-gradient(circle, rgba(45,99,222,0.40) 0%, transparent 65%)', filter: 'blur(46px)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: 340, right: -160, width: 460, height: 460, background: 'radial-gradient(circle, rgba(34,211,238,0.12) 0%, transparent 65%)', filter: 'blur(60px)', pointerEvents: 'none' }} />
       <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
     </div>
   )
@@ -69,9 +83,9 @@ export default function Admin() {
     </div>
   )
 
-  const { stats, artisans } = data
+  const { stats, artisans, caParMois = [], demandesParJour = [] } = data
   return shell(
-    <div style={{ maxWidth: 860, margin: '0 auto', padding: '26px 18px 70px' }}>
+    <div className="adm">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
         <div>
           <p style={{ fontSize: 12, color: C.accent, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Cockpit</p>
@@ -94,21 +108,24 @@ export default function Admin() {
       {/* MRR hero (façon "Total balance") */}
       <div style={{ background: 'linear-gradient(135deg,#1d3a8a 0%,#0c1f3f 100%)', border: `1px solid ${C.border}`, borderRadius: 26, padding: '26px 26px 24px', marginBottom: 16, position: 'relative', overflow: 'hidden', boxShadow: '0 24px 60px rgba(13,31,63,0.55)' }}>
         <div style={{ position: 'absolute', top: -40, right: -20, width: 180, height: 180, background: 'radial-gradient(circle, rgba(91,140,255,0.5) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'relative' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <Wallet size={16} color={C.accent} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>Revenu mensuel récurrent (MRR)</span>
+        <div style={{ position: 'relative' }} className="adm-hero">
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <Wallet size={16} color={C.accent} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>Revenu mensuel récurrent</span>
+            </div>
+            <p className="adm-mrr-num" style={{ fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, background: 'linear-gradient(120deg,#fff,#aaccff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{eur(stats.mrr)}</p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 10 }}>{stats.payants} abonné{stats.payants > 1 ? 's' : ''} payant{stats.payants > 1 ? 's' : ''} · {stats.essais} en essai</p>
           </div>
-          <p style={{ fontSize: 48, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1, background: 'linear-gradient(120deg,#fff,#aaccff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{eur(stats.mrr)}</p>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 10 }}>{stats.payants} abonné{stats.payants > 1 ? 's' : ''} payant{stats.payants > 1 ? 's' : ''} · {stats.essais} en essai</p>
+          <Bars data={caParMois} />
         </div>
       </div>
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 22 }}>
+      <div className="adm-stats">
         <Kpi Icon={Users} label="Artisans" value={`${stats.artisans}`} hint={`${stats.actifs} actifs`} />
         <Kpi Icon={Sparkles} label="Payants" value={`${stats.payants}`} hint={`${stats.essais} en essai`} />
-        <Kpi Icon={TrendingUp} label="Demandes" value={`${stats.demandes}`} hint={`${stats.demandes_payees} encaissées`} />
+        <Kpi Icon={TrendingUp} label="Demandes" value={`${stats.demandes}`} hint={`${stats.demandes_payees} encaissées`} spark={demandesParJour} />
       </div>
 
       <SystemStatus adminKey={key} />
@@ -148,7 +165,7 @@ export default function Admin() {
   )
 }
 
-function Kpi({ Icon, label, value, hint }: any) {
+function Kpi({ Icon, label, value, hint, spark }: any) {
   return (
     <div style={{ background: C.glass, border: `1px solid ${C.border}`, borderRadius: 18, padding: 16, backdropFilter: 'blur(10px)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
@@ -156,8 +173,41 @@ function Kpi({ Icon, label, value, hint }: any) {
         <span style={{ fontSize: 12.5, fontWeight: 600, color: C.mut }}>{label}</span>
       </div>
       <p style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em' }}>{value}</p>
-      {hint && <p style={{ fontSize: 11, color: C.mut2, marginTop: 2 }}>{hint}</p>}
+      {spark && spark.length > 1 && <Spark data={spark} />}
+      {hint && <p style={{ fontSize: 11, color: C.mut2, marginTop: spark ? 4 : 2 }}>{hint}</p>}
     </div>
+  )
+}
+
+// Mini histogramme (CA des 6 derniers mois) pour le hero MRR
+function Bars({ data }: { data: { label: string; ca: number }[] }) {
+  if (!data?.length) return null
+  const max = Math.max(...data.map(d => d.ca), 1)
+  return (
+    <div className="adm-chart" style={{ display: 'flex', alignItems: 'flex-end', gap: 9, height: 66 }}>
+      {data.map((d, i) => {
+        const h = Math.max((d.ca / max) * 100, 7)
+        const last = i === data.length - 1
+        return (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
+            <div style={{ width: 14, height: `${h}%`, borderRadius: 4, background: last ? 'linear-gradient(180deg,#7aa6ff,#2a6af0)' : 'rgba(255,255,255,0.16)' }} />
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)' }}>{d.label}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// Mini courbe (sparkline)
+function Spark({ data, color = '#5b8cff' }: { data: number[]; color?: string }) {
+  const max = Math.max(...data, 1), min = Math.min(...data, 0), range = (max - min) || 1
+  const w = 92, h = 26
+  const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / range) * (h - 3) - 1.5}`).join(' ')
+  return (
+    <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block', marginTop: 8, overflow: 'visible' }}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }
 

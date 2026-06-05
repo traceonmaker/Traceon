@@ -660,11 +660,11 @@ function Planning({ confirmes, artisan, save }: { confirmes:Demande[]; artisan:A
           const isTd = day.toDateString()===base.toDateString()
           return (
             <div key={di} style={{display:'flex',borderBottom:di<6?'1px solid var(--border)':'none',background:isTd?'var(--blue-dim)':'transparent'}}>
-              <div style={{width:54,flexShrink:0,padding:'12px 0',textAlign:'center',borderRight:'1px solid var(--border)'}}>
+              <div style={{width:60,flexShrink:0,padding:'18px 0',textAlign:'center',borderRight:'1px solid var(--border)'}}>
                 <p style={{fontSize:11,color:isTd?'var(--blue)':'var(--text3)',fontWeight:600,textTransform:'uppercase'}}>{JOURS[di]}</p>
-                <p style={{fontSize:18,fontWeight:800,color:isTd?'var(--blue)':'var(--text)',marginTop:1}}>{day.getDate()}</p>
+                <p style={{fontSize:20,fontWeight:800,color:isTd?'var(--blue)':'var(--text)',marginTop:2}}>{day.getDate()}</p>
               </div>
-              <div style={{flex:1,padding:'10px 12px',display:'flex',flexDirection:'column',gap:6,minHeight:50,justifyContent:'center'}}>
+              <div style={{flex:1,padding:'14px 14px',display:'flex',flexDirection:'column',gap:7,minHeight:'calc((100vh - 320px) / 7)',justifyContent:'center'}}>
                 {slots.map(s=>{
                   const st = svc(s.type_intervention); const c = s.creneau_accepte
                   return (

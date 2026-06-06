@@ -26,7 +26,9 @@ export async function provisionTraceOnNumber(): Promise<string | null> {
   if (!client || !base) return null
 
   const country = process.env.TWILIO_NUMBER_COUNTRY || 'FR'
-  const type = (process.env.TWILIO_NUMBER_TYPE || 'mobile').toLowerCase()
+  // Twilio ne vend PAS de mobile FR -> on prend du "local" (+33 9...), parfait comme
+  // cible de renvoi (le client ne le voit jamais, il appelle le numero de l'artisan).
+  const type = (process.env.TWILIO_NUMBER_TYPE || 'local').toLowerCase()
   const bundleSid = process.env.TWILIO_FR_BUNDLE_SID    // bundle réglementaire FR (1 fois sur le compte)
   const addressSid = process.env.TWILIO_FR_ADDRESS_SID
 

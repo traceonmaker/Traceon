@@ -5,8 +5,8 @@ import * as React from 'react'
 export function TraceOnMark({ size = 28, color = '#1d5fed', style }: { size?: number; color?: string; style?: React.CSSProperties }) {
   return (
     <svg width={size} height={size} viewBox="0 0 512 512" fill="none" style={style} aria-label="TraceOn" role="img">
-      <rect x="113" y="108" width="286" height="57" rx="28.5" fill={color} />
-      <path d="M256 120 L271 374 Q282 430 348 405" stroke={color} strokeWidth="57" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <rect x="108" y="116" width="296" height="58" rx="29" fill={color} />
+      <path d="M256 150 L256 372 Q262 416 322 398" stroke={color} strokeWidth="58" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </svg>
   )
 }

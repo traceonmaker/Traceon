@@ -1223,18 +1223,36 @@ function Parametres({ artisan, save }: { artisan:Artisan; save:(f:Partial<Artisa
       </Section>
 
       {/* Capture d'appel raté */}
-      <Section title="Capture d'appel">
+      <Section title="Capture d'appel manqué">
         {(artisan as any).numero_traceon ? (
           <>
-            <p style={{fontSize:13,color:'var(--text2)',marginBottom:10,lineHeight:1.5}}>Votre numéro TraceOn — affichez-le partout. Les appels arrivent sur votre téléphone ; si vous ne décrochez pas, le client reçoit un SMS avec votre lien.</p>
-            <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--blue-dim)',border:'1px solid var(--blue-mid)',borderRadius:12,padding:'12px 14px'}}>
-              <Phone size={18} color="var(--blue)" />
-              <span style={{fontSize:16,fontWeight:800,letterSpacing:'-0.01em'}}>{(artisan as any).numero_traceon}</span>
-            </div>
+            <p style={{fontSize:13,color:'var(--text2)',marginBottom:12,lineHeight:1.5}}>
+              <b>Ne perdez plus un seul client.</b> Gardez votre numéro habituel : un appel auquel vous ne répondez pas
+              est rattrapé automatiquement par un SMS qui envoie votre lien au client. <b>1 seul tap pour activer.</b>
+            </p>
+            <a href={`tel:**61*${(artisan as any).numero_traceon}%23`} onClick={()=>haptic(10)} className="btn-primary"
+               style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,textDecoration:'none'}}>
+              <Phone size={18} /> Activer la capture d'appels manqués
+            </a>
+            <p style={{fontSize:12,color:'var(--text3)',marginTop:8,lineHeight:1.5}}>
+              Pour tout couvrir, activez aussi le renvoi si&nbsp;:&nbsp;
+              <a href={`tel:**67*${(artisan as any).numero_traceon}%23`} style={{color:'var(--blue)',fontWeight:600}}>occupé</a> ·{' '}
+              <a href={`tel:**62*${(artisan as any).numero_traceon}%23`} style={{color:'var(--blue)',fontWeight:600}}>injoignable</a>.
+              {' '}Désactiver&nbsp;: <a href="tel:%23%23002%23" style={{color:'var(--text3)',fontWeight:600}}>##002#</a>
+            </p>
+            <details style={{marginTop:12}}>
+              <summary style={{fontSize:12,color:'var(--text2)',cursor:'pointer'}}>Ou afficher directement mon numéro TraceOn</summary>
+              <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--blue-dim)',border:'1px solid var(--blue-mid)',borderRadius:12,padding:'12px 14px',marginTop:8}}>
+                <Phone size={18} color="var(--blue)" />
+                <span style={{fontSize:16,fontWeight:800,letterSpacing:'-0.01em'}}>{(artisan as any).numero_traceon}</span>
+              </div>
+              <p style={{fontSize:12,color:'var(--text3)',marginTop:6}}>Affichez-le partout : les appels arrivent sur votre téléphone, et un manqué = un SMS au client.</p>
+            </details>
           </>
         ) : (
           <p style={{fontSize:13,color:'var(--text2)',lineHeight:1.5}}>
-            Bientôt : un numéro TraceOn qui renvoie vers votre téléphone et <b>rattrape chaque appel manqué</b> par SMS — pour ne plus jamais perdre un client. Activation sur demande.
+            Bientôt : la capture d'appel manqué se câble <b>automatiquement à la création de votre compte</b> et
+            <b> rattrape chaque appel raté</b> par SMS — pour ne plus jamais perdre un client.
           </p>
         )}
       </Section>

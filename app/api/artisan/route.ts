@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import { slugify } from '@/lib/utils'
 import { sendEmail, emailLayout } from '@/lib/email'
+import { provisionTraceOnNumber } from '@/lib/twilio'
 import twilio from 'twilio'
 
 export const runtime = 'nodejs'
@@ -77,6 +78,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Cet email est déjà utilisé. Connectez-vous.' }, { status: 409 })
     }
     return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // 2bis. Numéro TraceOn dédié (capture d'appel manqué) — automatique, best-effort.
+  //       Ne fait rien tant que TWILIO_AUTO_PROVISION !== '1' (voir lib/twilio.ts).
+  try {
+    const numero = await provisionTraceOnNumber()
+    if (numero) {
+      await supabaseAdmin.from('artisans').update({ numero_traceon: numero }).eq('id', data.id)
+      ;(data as { numero_traceon?: string }).numero_traceon = numero
+    }
+  } catch (e) {
+    console.error('numero_traceon:', (e as { message?: string })?.message)
   }
 
   // 3. Envoi du mot de passe par SMS (best-effort — n'empêche pas la création)
